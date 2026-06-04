@@ -20,7 +20,6 @@ Test the tool live here: https://caffeinecrash.github.io/Battlefield-4-Loadout-T
 
 ---
 
-## 📸 Screenshots & Preview
 
 
 <img width="1824" height="1010" alt="Screenshot 2026-06-04 120823" src="https://github.com/user-attachments/assets/a9b8db4c-aa40-4359-9d0a-ce877349e062" />
