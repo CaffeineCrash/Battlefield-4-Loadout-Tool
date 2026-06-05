@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <title>BF4 Weapon Lab (Precision Edition 2.96)</title>
+    <title>BF4 Weapon Lab (Precision Edition 2.98)</title>
     <style>
         body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background-color: #0b0e14; color: #f0f4f8; margin: 0; padding: 20px; }
         .container { display: flex; flex-wrap: wrap; gap: 20px; max-width: 1400px; margin: auto; }
@@ -11,172 +11,244 @@
             background: #121721; 
             padding: 20px; 
             border-radius: 8px; 
-            box-shadow: 0 4px 20px rgba(0,0,0,0.6); 
+            border: 1px solid #1e2635; 
             flex: 1; 
             min-width: 300px; 
-            border: 1px solid #1e2635; 
-            transition: border-color 0.3s ease, box-shadow 0.3s ease;
+            box-shadow: 0 4px 20px rgba(0,0,0,0.6); 
+            transition: border-color 0.3s, box-shadow 0.3s;
         }
-        .panel:hover {
-            border-color: rgba(0, 163, 255, 0.3);
-            box-shadow: 0 8px 30px rgba(0,0,0,0.8);
-        }
+        .panel:hover { border-color: rgba(0, 163, 255, 0.3); box-shadow: 0 8px 30px rgba(0,0,0,0.8); }
+        .panel.import { flex: 0.8; }
+        .panel.visualizer { flex: 1.5; }
 
         h2 { margin-top: 0; color: #00a3ff; border-bottom: 2px solid #00a3ff; padding-bottom: 10px; font-size: 18px; text-transform: uppercase; letter-spacing: 0.5px; }
-        label { display: block; margin-bottom: 8px; font-weight: bold; font-size: 13px; color: #7f8fa4; }
+        label { display: block; margin-bottom: 8px; font-weight: bold; font-size: 13px; color: #7f8fa4; position: relative; }
         input[type="range"], select { width: 100%; margin-bottom: 15px; box-sizing: border-box; }
         
-        /* Custom styling for Sym-style inputs */
-        select { padding: 8px; border-radius: 4px; background: #1a2231; color: white; border: 1px solid #2a374e; transition: border-color 0.2s ease; }
-        select:focus { border-color: #00a3ff; outline: none; }
-        textarea { width: 100%; height: 120px; background: #070a0f; color: #f0f4f8; border: 1px solid #1e2635; padding: 10px; font-family: monospace; font-size: 12px; box-sizing: border-box; margin-bottom: 10px; resize: vertical; border-radius: 4px; transition: border-color 0.2s ease; }
-        textarea:focus { border-color: #00a3ff; outline: none; }
+        select { padding: 8px; border-radius: 4px; background: #1a2231; color: white; border: 1px solid #2a374e; transition: border-color 0.2s; }
+        select:focus, textarea:focus { border-color: #00a3ff; outline: none; }
         
-        button { background: #00a3ff; color: #ffffff; border: none; padding: 10px 15px; font-weight: bold; cursor: pointer; border-radius: 4px; width: 100%; transition: background 0.2s ease; }
+        textarea { width: 100%; height: 120px; background: #070a0f; color: #f0f4f8; border: 1px solid #1e2635; padding: 10px; font-family: monospace; font-size: 12px; box-sizing: border-box; margin-bottom: 10px; resize: vertical; border-radius: 4px; transition: border-color 0.2s; }
+        
+        button { background: #00a3ff; color: #ffffff; border: none; padding: 10px 15px; font-weight: bold; cursor: pointer; border-radius: 4px; width: 100%; transition: background 0.2s; }
         button:hover { background: #008be3; }
         
-        .checkbox-container { display: flex; align-items: center; background: #1a2231; padding: 10px; border-radius: 4px; margin-bottom: 10px; border: 1px solid #2a374e; transition: opacity 0.3s ease; }
+        .checkbox-container { display: flex; align-items: center; background: #1a2231; padding: 10px; border-radius: 4px; margin-bottom: 10px; border: 1px solid #2a374e; transition: opacity 0.3s; }
         .checkbox-container input { width: auto; margin-right: 10px; transform: scale(1.3); cursor: pointer; }
+        .checkbox-container label { margin: 0; color: #fff; cursor: pointer; }
         .checkbox-container.disabled { opacity: 0.4; cursor: not-allowed; }
+        
+        #burstModeContainer { display: none; border-color: #00a3ff; }
+        #burstModeContainer label { color: #00a3ff; font-weight: bold; }
+        #parseStatus { margin-top: 10px; font-size: 12px; color: #00C851; }
         .val-display { float: right; color: #00a3ff; font-weight: bold; }
         
         canvas { background: #070a0f; border: 2px solid #1e2635; border-radius: 8px; width: 100%; max-width: 400px; display: block; margin: 0 auto 10px auto; }
+        
+        .legend-container { display: flex; justify-content: center; gap: 15px; font-size: 12px; color: #7f8fa4; margin-bottom: 15px; flex-wrap: wrap; }
+        .legend-item { display: flex; align-items: center; gap: 5px; }
+        
         .stats-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
         
-        /* Smooth transitions for stat boxes */
         .stat-box { 
             background: #1a2231; 
             padding: 10px; 
             border-radius: 4px; 
             border-left: 3px solid #00a3ff; 
             font-size: 14px; 
-            border-top: 1px solid #2a374e; 
-            border-right: 1px solid #2a374e; 
-            border-bottom: 1px solid #2a374e; 
-            transition: border-left-color 0.4s ease, background-color 0.4s ease;
+            border-top: 1px solid #2a374e; border-right: 1px solid #2a374e; border-bottom: 1px solid #2a374e; 
+            transition: border-left-color 0.4s, background-color 0.4s;
         }
         .stat-box.alert { border-left-color: #ff4444; background-color: rgba(255, 68, 68, 0.05); }
         .stat-box.good { border-left-color: #00C851; background-color: rgba(0, 200, 81, 0.05); }
         .stat-box.info { border-left-color: #33b5e5; background-color: rgba(51, 181, 229, 0.05); }
+        .stat-box.span-2 { grid-column: span 2; }
         
-        .stat-label { color: #7f8fa4; font-size: 12px; display: block; margin-bottom: 4px; transition: color 0.3s ease; }
-        .stat-value { font-weight: bold; font-size: 16px; color: #ffffff; transition: color 0.3s ease; }
+        .recommendation-box { margin-top: 20px; }
+        .recommendation-box .stat-label { color: #33b5e5; font-weight: bold; }
+        #loadoutRecValue { margin-top: 5px; font-size: 13px; line-height: 1.4; }
+        #loadoutRecValue i { font-size: 11px; color: #7f8fa4; display: block; margin-top: 5px; }
+
+        .stat-label { color: #7f8fa4; font-size: 12px; display: block; margin-bottom: 4px; position: relative; }
+        .stat-value { font-weight: bold; font-size: 16px; color: #ffffff; }
         
-        #btnFire { background: #00ffcc; color: #0b0e14; font-weight: bold; margin-bottom: 20px; transition: background 0.2s ease, opacity 0.2s ease; border-radius: 4px; }
+        #btnFire { background: #00ffcc; color: #0b0e14; font-weight: bold; margin-bottom: 20px; border-radius: 4px; }
         #btnFire:hover:not(:disabled) { background: #00cc99; }
+
+        /* TOOLTIP CSS */
+        .tooltip {
+            position: relative;
+            display: inline-block;
+            cursor: help;
+            color: #33b5e5;
+            font-size: 11px;
+            margin-left: 6px;
+            vertical-align: middle;
+            font-weight: bold;
+        }
+        .tooltip .tooltiptext {
+            visibility: hidden;
+            width: 260px;
+            background-color: #1a2231;
+            color: #f0f4f8;
+            text-align: left;
+            border-radius: 6px;
+            padding: 12px;
+            position: absolute;
+            z-index: 100;
+            bottom: 150%;
+            left: 50%;
+            transform: translateX(-50%);
+            opacity: 0;
+            transition: opacity 0.3s, transform 0.3s;
+            border: 1px solid #33b5e5;
+            font-size: 12px;
+            font-weight: normal;
+            line-height: 1.5;
+            box-shadow: 0 8px 25px rgba(0,0,0,0.8);
+            pointer-events: none;
+            text-transform: none;
+            letter-spacing: normal;
+        }
+        .tooltip .tooltiptext b { color: #00a3ff; }
+        .tooltip .tooltiptext::after {
+            content: "";
+            position: absolute;
+            top: 100%;
+            left: 50%;
+            margin-left: -6px;
+            border-width: 6px;
+            border-style: solid;
+            border-color: #33b5e5 transparent transparent transparent;
+        }
+        .tooltip:hover .tooltiptext {
+            visibility: visible;
+            opacity: 1;
+            transform: translateX(-50%) translateY(-2px);
+        }
     </style>
 </head>
 <body>
 
 <div class="container">
-    <div class="panel" style="flex: 0.8;">
+    <div class="panel import">
         <h2>1. Sym.gg Data Import</h2>
         <label>Paste raw data here:</label>
-        <textarea id="rawInput">ADSCrouchBaseMax    1.7
-ADSCrouchBaseMin    0.2
-ADSCrouchBaseNoFireDecreasePerSecond    15
-ADSCrouchBaseNoFireTimeThreshold    0.2
-ADSCrouchBaseSpreadDec    10.5
-ADSCrouchBaseSpreadInc    0.1
-ADSCrouchMoveMax    1.7
-ADSCrouchMoveMin    1
-ADSCrouchMoveNoFireDecreasePerSecond    15
-ADSCrouchMoveNoFireTimeThreshold    0.2
-ADSCrouchMoveSpreadDec    10.5
-ADSCrouchMoveSpreadInc    0.1
-ADSProneBaseMax    1.7
-ADSProneBaseMin    0.2
-ADSProneBaseNoFireDecreasePerSecond    15
-ADSProneBaseNoFireTimeThreshold    0.2
-ADSProneBaseSpreadDec    10.5
-ADSProneBaseSpreadInc    0.1
-ADSProneMoveMax    1.7
-ADSProneMoveMin    1
-ADSProneMoveNoFireDecreasePerSecond    15
-ADSProneMoveNoFireTimeThreshold    0.2
-ADSProneMoveSpreadDec    10.5
-ADSProneMoveSpreadInc    0.1
-ADSRecoilDec    18
-ADSRecoilLeft    0.17
-ADSRecoilRight    0.27
-ADSRecoilUp    0.36
-ADSStandBaseMax    1.7
-ADSStandBaseMin    0.2
-ADSStandBaseNoFireDecreasePerSecond    15
-ADSStandBaseNoFireTimeThreshold    0.2
-ADSStandBaseSpreadDec    10.5
-ADSStandBaseSpreadInc    0.1
-ADSStandMoveMax    1.7
-ADSStandMoveMin    1
-ADSStandMoveNoFireDecreasePerSecond    15
-ADSStandMoveNoFireTimeThreshold    0.2
-ADSStandMoveSpreadDec    10.5
-ADSStandMoveSpreadInc    0.1
-BDrop    15
-BRoF    770
-BlastDmg    N/A
-BlastRadius    N/A
-Class    1
-DOEnd    60
-DOStart    12.5
-EDmg    18
-FirstShotRecoilMul    2.25
-FirstShotSpreadMul    1.0
-HIPCrouchBaseMax    7
-HIPCrouchBaseMin    2.5
-HIPCrouchBaseNoFireDecreasePerSecond    15
-HIPCrouchBaseNoFireTimeThreshold    0.2
-HIPCrouchBaseSpreadDec    15
-HIPCrouchBaseSpreadInc    0.1
-HIPCrouchMoveMax    7
-HIPCrouchMoveMin    3
-HIPCrouchMoveNoFireDecreasePerSecond    15
-HIPCrouchMoveNoFireTimeThreshold    0.2
-HIPCrouchMoveSpreadDec    15
-HIPCrouchMoveSpreadInc    0.1
-HIPProneBaseMax    7
-HIPProneBaseMin    2
-HIPProneBaseNoFireDecreasePerSecond    15
-HIPProneBaseNoFireTimeThreshold    0.2
-HIPProneBaseSpreadDec    15
-HIPProneBaseSpreadInc    0.1
-HIPProneMoveMax    7
-HIPProneMoveMin    2.5
-HIPProneMoveNoFireDecreasePerSecond    15
-HIPProneMoveNoFireTimeThreshold    0.2
-HIPProneMoveSpreadDec    15
-HIPProneMoveSpreadInc    0.1
-HIPRecoilDec    18
-HIPRecoilLeft    0.17
-HIPRecoilRight    0.27
-HIPRecoilUp    0.36
-HIPStandBaseMax    7
-HIPStandBaseMin    3
-HIPStandBaseNoFireDecreasePerSecond    15
-HIPStandBaseNoFireTimeThreshold    0.2
-HIPStandBaseSpreadDec    15
-HIPStandBaseSpreadInc    0.1
-HIPStandMoveMax    7
-HIPStandMoveMin    3.5
-HIPStandMoveNoFireDecreasePerSecond    15
-HIPStandMoveNoFireTimeThreshold    0.2
-HIPStandMoveSpreadDec    15
-HIPStandMoveSpreadInc    0.1
-HorDispersion    0
-InitialSpeed    620
-InitialSpeed_Silencer    350
-InnerBlastRadius    N/A
-MagSize    36
-MaxDistance    930
-Pellets    0
-ReloadEmpty    3.4
-ReloadLeft    2.3
-ReloadThrs    0.76
-RoF    770
-SDmg    24.5
-TimeToLive    1.5</textarea>
-        <button onclick="parseData()">Load & Apply Data</button>
-        <div id="parseStatus" style="margin-top: 10px; font-size: 12px; color: #00C851;">Waiting for import...</div>
+        <textarea id="rawInput">ADSCrouchBaseMax	1.7
+ADSCrouchBaseMin	0.2
+ADSCrouchBaseNoFireDecreasePerSecond	15
+ADSCrouchBaseNoFireTimeThreshold	0.2
+ADSCrouchBaseSpreadDec	10.5
+ADSCrouchBaseSpreadInc	0.1
+ADSCrouchMoveMax	1.7
+ADSCrouchMoveMin	1
+ADSCrouchMoveNoFireDecreasePerSecond	15
+ADSCrouchMoveNoFireTimeThreshold	0.2
+ADSCrouchMoveSpreadDec	10.5
+ADSCrouchMoveSpreadInc	0.1
+ADSProneBaseMax	1.7
+ADSProneBaseMin	0.2
+ADSProneBaseNoFireDecreasePerSecond	15
+ADSProneBaseNoFireTimeThreshold	0.2
+ADSProneBaseSpreadDec	10.5
+ADSProneBaseSpreadInc	0.1
+ADSProneMoveMax	1.7
+ADSProneMoveMin	1
+ADSProneMoveNoFireDecreasePerSecond	15
+ADSProneMoveNoFireTimeThreshold	0.2
+ADSProneMoveSpreadDec	10.5
+ADSProneMoveSpreadInc	0.1
+ADSRecoilDec	18
+ADSRecoilLeft	0.17
+ADSRecoilRight	0.27
+ADSRecoilUp	0.36
+ADSStandBaseMax	1.7
+ADSStandBaseMin	0.2
+ADSStandBaseNoFireDecreasePerSecond	15
+ADSStandBaseNoFireTimeThreshold	0.2
+ADSStandBaseSpreadDec	10.5
+ADSStandBaseSpreadInc	0.1
+ADSStandMoveMax	1.7
+ADSStandMoveMin	1
+ADSStandMoveNoFireDecreasePerSecond	15
+ADSStandMoveNoFireTimeThreshold	0.2
+ADSStandMoveSpreadDec	10.5
+ADSStandMoveSpreadInc	0.1
+BDrop	15
+BRoF	770
+BlastDmg	N/A
+BlastRadius	N/A
+Class	1
+DOEnd	60
+DOStart	12.5
+EDmg	18
+FirstShotRecoilMul	2.25
+HIPCrouchBaseMax	7
+HIPCrouchBaseMin	2.5
+HIPCrouchBaseNoFireDecreasePerSecond	15
+HIPCrouchBaseNoFireTimeThreshold	0.2
+HIPCrouchBaseSpreadDec	15
+HIPCrouchBaseSpreadInc	0.1
+HIPCrouchMoveMax	7
+HIPCrouchMoveMin	3
+HIPCrouchMoveNoFireDecreasePerSecond	15
+HIPCrouchMoveNoFireTimeThreshold	0.2
+HIPCrouchMoveSpreadDec	15
+HIPCrouchMoveSpreadInc	0.1
+HIPProneBaseMax	7
+HIPProneBaseMin	2
+HIPProneBaseNoFireDecreasePerSecond	15
+HIPProneBaseNoFireTimeThreshold	0.2
+HIPProneBaseSpreadDec	15
+HIPProneBaseSpreadInc	0.1
+HIPProneMoveMax	7
+HIPProneMoveMin	2.5
+HIPProneMoveNoFireDecreasePerSecond	15
+HIPProneMoveNoFireTimeThreshold	0.2
+HIPProneMoveSpreadDec	15
+HIPProneMoveSpreadInc	0.1
+HIPRecoilDec	18
+HIPRecoilLeft	0.17
+HIPRecoilRight	0.27
+HIPRecoilUp	0.36
+HIPStandBaseMax	7
+HIPStandBaseMin	3
+HIPStandBaseNoFireDecreasePerSecond	15
+HIPStandBaseNoFireTimeThreshold	0.2
+HIPStandBaseSpreadDec	15
+HIPStandBaseSpreadInc	0.1
+HIPStandMoveMax	7
+HIPStandMoveMin	3.5
+HIPStandMoveNoFireDecreasePerSecond	15
+HIPStandMoveNoFireTimeThreshold	0.2
+HIPStandMoveSpreadDec	15
+HIPStandMoveSpreadInc	0.1
+HorDispersion	0
+InitialSpeed	620
+InitialSpeed_Silencer	350
+InnerBlastRadius	N/A
+MagSize	36
+MaxDistance	930
+Pellets	0
+ReloadEmpty	3.4
+ReloadLeft	2.3
+ReloadThrs	0.76
+RoF	770
+SDmg	24.5
+TimeToLive	1.5 </textarea>
+        
+        <div style="display: flex; gap: 5px;">
+            <button onclick="parseData()" style="flex: 2;">Load & Apply Data</button>
+            <button onclick="forceBurst()" style="flex: 1; background: #33b5e5;">Force Burst
+                <span class="tooltip" style="color: white; margin-left: 2px;">[?]
+                    <span class="tooltiptext">
+                        <b>Force Burst:</b> Manually injects "ShotsPerBurst 3" into the data for weapons that lack explicit burst parameters, forcing the simulation into burst mode.
+                    </span>
+                </span>
+            </button>
+        </div>
+        
+        <div id="parseStatus">Waiting for import...</div>
     </div>
 
     <div class="panel">
@@ -187,9 +259,9 @@ TimeToLive    1.5</textarea>
         <label>Shots in Burst: <span class="val-display" id="burstVal">4</span></label>
         <input type="range" id="burst" min="1" max="15" value="4">
 
-        <div class="checkbox-container" id="burstModeContainer" style="display: none; border-color: #00a3ff;">
+        <div class="checkbox-container" id="burstModeContainer">
             <input type="checkbox" id="burstModeToggle">
-            <label style="margin: 0; color: #00a3ff; font-weight: bold; cursor: pointer;">Burst Mode Active (<span id="brofLabel">0</span>)</label>
+            <label id="burstToggleLabel">Burst Mode Active (<span id="brofLabel">0</span>)</label>
         </div>
 
         <label>Player Stance</label>
@@ -201,15 +273,23 @@ TimeToLive    1.5</textarea>
 
         <div class="checkbox-container" id="movingContainer">
             <input type="checkbox" id="isMoving">
-            <label style="margin: 0; color: #fff; cursor: pointer;">Player is moving (ADS Move Penalty)</label>
+            <label>Player is moving (ADS Move Penalty)</label>
         </div>
         
-        <div class="checkbox-container" style="margin-bottom: 15px;">
+        <div class="checkbox-container">
             <input type="checkbox" id="showRecoil" checked>
-            <label style="margin: 0; color: #fff; cursor: pointer;">Simulate raw recoil (Uncheck for Full Compensation / Spread Only)</label>
+            <label>Simulate raw recoil (Uncheck for Full Compensation / Spread Only)</label>
         </div>
 
-        <label>Barrel Attachment</label>
+        <label>Barrel Attachment 
+            <span class="tooltip">[?]
+                <span class="tooltiptext">
+                    <b>SDEC:</b> Spread Decrease (How fast accuracy recovers after firing)<br><br>
+                    <b>SIPS:</b> Spread Increase Per Shot (Accuracy loss per bullet fired)<br><br>
+                    <b>MinSpread:</b> Base accuracy before firing
+                </span>
+            </span>
+        </label>
         <select id="barrel">
             <option value="none">None</option>
             <option value="fh">Flash Hider (SDEC -13% / Hide Flash)</option>
@@ -218,7 +298,14 @@ TimeToLive    1.5</textarea>
             <option value="comp">Compensator (H.Recoil -25%, SIPS +30%)</option>
         </select>
 
-        <label>Underbarrel Grip / Aux</label>
+        <label>Underbarrel Grip / Aux 
+            <span class="tooltip">[?]
+                <span class="tooltiptext">
+                    <b>FSRM:</b> First Shot Recoil Multiplier (The extra vertical kick on the very first bullet of a burst)<br><br>
+                    <b>MaxSpread:</b> The maximum possible accuracy penalty limit
+                </span>
+            </span>
+        </label>
         <select id="grip">
             <option value="none">None</option>
             <option value="stubby">Stubby Grip (SIPS -20%, MaxSpread -17%, SDEC -33%)</option>
@@ -227,15 +314,23 @@ TimeToLive    1.5</textarea>
             <option value="bipod">Bipod Deployed (Min -95%, Max -83.5%, SIPS -90%, Recoil Cut, Locks Move)</option>
         </select>
 
-        <div class="stat-box info" style="margin-top: 20px;">
-            <span class="stat-label" style="color: #33b5e5; font-weight: bold;">💡 Loadout Recommendation</span>
-            <div id="loadoutRecValue" style="margin-top: 5px; font-size: 13px; line-height: 1.4;">Waiting for data...</div>
+        <div class="stat-box info recommendation-box">
+            <span class="stat-label">💡 Loadout Recommendation</span>
+            <div id="loadoutRecValue">Waiting for data...</div>
         </div>
     </div>
 
-    <div class="panel" style="flex: 1.5;">
+    <div class="panel visualizer">
         <h2>3. Analysis & Precision Visualizer</h2>
-        <canvas id="targetCanvas" style="width: 100%; max-width: 400px; display: block; margin: 0 auto 10px auto;"></canvas>
+        <canvas id="targetCanvas"></canvas>
+        
+        <div class="legend-container">
+            <div class="legend-item"><span style="color:#ff3333; font-size:16px;">●</span> First Shot (FSRM)</div>
+            <div class="legend-item"><span style="color:#00C851; font-size:16px;">●</span> Hit</div>
+            <div class="legend-item"><span style="color:rgba(255,255,255,0.4); font-size:16px;">●</span> Miss</div>
+            <div class="legend-item"><span style="border: 1px solid rgba(0, 163, 255, 0.5); border-radius:50%; display:inline-block; width:10px; height:10px; background:rgba(0, 163, 255, 0.1);"></span> Max Area</div>
+        </div>
+
         <button id="btnFire">🔥 Animate Firing (Real-Time RoF)</button>
         <div class="stats-grid">
             <div class="stat-box" id="dmgBox">
@@ -251,11 +346,19 @@ TimeToLive    1.5</textarea>
                 <span class="stat-value" id="maxSpreadVal">-</span>
             </div>
             <div class="stat-box info" id="pacingBox">
-                <span class="stat-label">Burst Pacing Bottleneck (Recovery)</span>
+                <span class="stat-label">Burst Pacing Bottleneck 
+                    <span class="tooltip" style="color:#7f8fa4;">[?]
+                        <span class="tooltiptext" style="color:#f0f4f8;">The required pause duration in milliseconds between bursts to fully reset your weapon's accuracy to base levels.</span>
+                    </span>
+                </span>
                 <span class="stat-value" id="pacingVal">-</span>
             </div>
-            <div class="stat-box" style="grid-column: span 2;">
-                <span class="stat-label">Recoil per Burst (Final Shot Target Window)</span>
+            <div class="stat-box span-2">
+                <span class="stat-label">Recoil per Burst 
+                    <span class="tooltip" style="color:#7f8fa4;">[?]
+                        <span class="tooltiptext" style="color:#f0f4f8;">The total combined vertical and horizontal camera kick accumulated over your selected burst length.</span>
+                    </span>
+                </span>
                 <span class="stat-value" id="recoilVal">-</span>
             </div>
             <div class="stat-box">
@@ -274,20 +377,42 @@ TimeToLive    1.5</textarea>
     const $ = id => document.getElementById(id);
     const DEG2RAD = Math.PI / 180;
     
-    // Global States
-    let WEP = {};
-    let animationTimeout = null;
-    let currentShotsArray = [];
-    let currentActiveRoF = 770;
-    let lastCalcParams = {};
+    let WEP = {}, animationTimeout = null, currentShotsArray = [], currentActiveRoF = 770, lastCalcParams = {};
 
-    // Cache silhouette paths globally to prevent GC thrashing
     const SILHOUETTE_PTS = [
         [0,0], [0.08,0.02], [0.11,0.07], [0.1,0.14], [0.07,0.19], [0.06,0.23], [0.16,0.27], [0.28,0.32],
         [0.3,0.45], [0.26,0.62], [0.23,0.78], [0.21,0.95], [0.19,1.32], [0.17,1.68], [0.23,1.74], [0.24,1.8],
         [0.07,1.8], [0.07,1.68], [0.06,1.32], [0.04,1.04], [0,1]
     ];
     const SILHOUETTE_PTS_REV = [...SILHOUETTE_PTS].reverse();
+    const getBurstConfig = () => WEP.BurstShots || WEP.AmmoPerBurst || WEP.ShotsPerBurst;
+
+    function pointInPolygon(point, vs) {
+        let x = point[0], y = point[1];
+        let inside = false;
+        for (let i = 0, j = vs.length - 1; i < vs.length; j = i++) {
+            let xi = vs[i][0], yi = vs[i][1];
+            let xj = vs[j][0], yj = vs[j][1];
+            let intersect = ((yi > y) != (yj > y)) && (x < (xj - xi) * (y - yi) / (yj - yi) + xi);
+            if (intersect) inside = !inside;
+        }
+        return inside;
+    }
+
+    function updateFireBtn(disabled, text) {
+        const btn = $('btnFire');
+        btn.disabled = disabled;
+        btn.style.opacity = disabled ? "0.6" : "1";
+        btn.innerText = text;
+    }
+
+    function forceBurst() {
+        const input = $('rawInput');
+        if (!input.value.includes("ShotsPerBurst")) {
+            input.value += "\nShotsPerBurst 3";
+        }
+        parseData();
+    }
 
     function parseData() {
         const text = $('rawInput').value;
@@ -308,12 +433,12 @@ TimeToLive    1.5</textarea>
             status.innerText = `Successfully parsed! (${parsedCount} ADS variables detected)`;
             if (WEP.MagSize) $('burst').max = WEP.MagSize;
 
-            const bSize = WEP.BurstShots || WEP.AmmoPerBurst || WEP.ShotsPerBurst;
+            const bSize = getBurstConfig();
             const hasBRoF = WEP.BRoF && WEP.BRoF !== WEP.RoF;
 
             if (bSize || hasBRoF) {
                 $('burstModeContainer').style.display = 'flex';
-                $('brofLabel').innerText = `${hasBRoF ? WEP.BRoF : (WEP.RoF || 0)} RPM` + (bSize ? ` / ${bSize}-Shot` : '');
+                $('brofLabel').innerText = `${hasBRoF ? WEP.BRoF : (WEP.RoF || 0)} RPM${bSize ? ` / ${bSize}-Shot` : ''}`;
             } else {
                 $('burstModeContainer').style.display = 'none';
                 $('burstModeToggle').checked = false;
@@ -329,43 +454,27 @@ TimeToLive    1.5</textarea>
     
     $('burstModeToggle').addEventListener('change', function() {
         if (this.checked) {
-            const b = WEP.BurstShots || WEP.AmmoPerBurst || WEP.ShotsPerBurst;
+            const b = getBurstConfig();
             if (b) $('burst').value = b;
         }
         calculate();
     });
 
-    $('btnFire').addEventListener('click', function() {
-        if (!currentShotsArray || currentShotsArray.length === 0) return;
+    $('btnFire').addEventListener('click', () => {
+        if (!currentShotsArray?.length) return;
         if (animationTimeout) clearTimeout(animationTimeout);
         
-        const btn = $('btnFire');
-        let delay = (60 / currentActiveRoF) * 1000;
-        let idx = 0;
-        
-        btn.disabled = true;
-        btn.style.opacity = "0.6";
+        let delay = (60 / currentActiveRoF) * 1000, idx = 0;
         
         function tick() {
             if (idx < currentShotsArray.length) {
-                btn.innerText = `💥 Firing Shot ${idx + 1}/${currentShotsArray.length}...`;
-                drawCanvas(
-                    lastCalcParams.dist, 
-                    lastCalcParams.radiusM, 
-                    lastCalcParams.vRecoil, 
-                    lastCalcParams.hRecoil, 
-                    lastCalcParams.burst, 
-                    lastCalcParams.stk, 
-                    currentShotsArray, 
-                    true, 
-                    idx
-                );
+                updateFireBtn(true, `💥 Firing Shot ${idx + 1}/${currentShotsArray.length}...`);
+                // Getrennter Links/Rechts-Rückstoß wird an drawCanvas übergeben
+                drawCanvas(lastCalcParams.dist, lastCalcParams.radiusM, lastCalcParams.vRecoil, lastCalcParams.hRecoilLeft, lastCalcParams.hRecoilRight, lastCalcParams.burst, lastCalcParams.stk, currentShotsArray, true, idx);
                 idx++;
                 animationTimeout = setTimeout(tick, delay);
             } else {
-                btn.disabled = false;
-                btn.style.opacity = "1";
-                btn.innerText = "🔥 Animate Firing (Real-Time RoF)";
+                updateFireBtn(false, "🔥 Animate Firing (Real-Time RoF)");
                 animationTimeout = null;
             }
         }
@@ -378,19 +487,27 @@ TimeToLive    1.5</textarea>
         if (animationTimeout) {
             clearTimeout(animationTimeout);
             animationTimeout = null;
-            const btn = $('btnFire');
-            btn.disabled = false;
-            btn.style.opacity = "1";
-            btn.innerText = "🔥 Animate Firing (Real-Time RoF)";
+            updateFireBtn(false, "🔥 Animate Firing (Real-Time RoF)");
         }
 
         const dist = parseFloat($('distance').value);
-        const burst = parseInt($('burst').value);
-        const showRecoil = $('showRecoil').checked;
-        const barrel = $('barrel').value;
-        const grip = $('grip').value;
-        const stance = $('stance').value;
-        const isBurstMode = $('burstModeToggle').checked;
+        const showRecoil = $('showRecoil').checked, barrel = $('barrel').value, grip = $('grip').value, stance = $('stance').value, isBurstMode = $('burstModeToggle').checked;
+
+        const burstSlider = $('burst');
+        
+        // Lock-Mechanismus für den Slider:
+        if (isBurstMode) {
+            burstSlider.value = getBurstConfig() || 3;
+            burstSlider.disabled = true;
+            burstSlider.style.opacity = "0.5";
+            burstSlider.style.cursor = "not-allowed";
+        } else {
+            burstSlider.disabled = false;
+            burstSlider.style.opacity = "1";
+            burstSlider.style.cursor = "pointer";
+        }
+
+        const burst = parseInt(burstSlider.value);
 
         if (grip === 'bipod') $('isMoving').checked = false;
         $('isMoving').disabled = grip === 'bipod';
@@ -403,7 +520,6 @@ TimeToLive    1.5</textarea>
         const activeRoF = (isBurstMode && WEP.BRoF) ? WEP.BRoF : WEP.RoF;
         currentActiveRoF = activeRoF;
 
-        // --- 1. DAMAGE & TTK ---
         let dmg = WEP.SDmg;
         if (dist > WEP.DOStart && dist < WEP.DOEnd) dmg -= (WEP.SDmg - WEP.EDmg) * ((dist - WEP.DOStart) / (WEP.DOEnd - WEP.DOStart));
         else if (dist >= WEP.DOEnd) dmg = WEP.EDmg;
@@ -412,274 +528,156 @@ TimeToLive    1.5</textarea>
         const flightTime = dist / (WEP.InitialSpeed || 600);
         const totalTTKMs = (((shotsToKill - 1) * (60 / activeRoF)) + flightTime) * 1000;
 
-        // --- 2. RAW DATA BASE EXTRACTION ---
         let staticMin = WEP[`ADS${stance}BaseMin`] || WEP.ADSStandBaseMin || 0.2;
         let movingMin = WEP[`ADS${stance}MoveMin`] || WEP.ADSStandMoveMin || 1.0;
         let sips      = WEP[`ADS${stance}BaseSpreadInc`] || WEP.ADSStandBaseSpreadInc || 0.1;
         let maxSpread = WEP[`ADS${stance}${isMoving ? 'Move' : 'Base'}Max`] || WEP[`ADSStand${isMoving ? 'Move' : 'Base'}Max`] || 1.7;
         let sdec      = WEP[`ADS${stance}BaseSpreadDec`] || WEP.ADSStandBaseSpreadDec || 15;
 
-        let recoilUp  = (WEP.ADSRecoilUp || 0.3) * 0.95; 
-        let recLeft   = WEP.ADSRecoilLeft || 0.1;
-        let recRight  = WEP.ADSRecoilRight || 0.1;
-        let fsrm      = WEP.FirstShotRecoilMul || 2.0;
-
-        // =========================================================================
-        // RESTRUCTURED ATTACHMENT CALCULATION BLOCK (PRECISION MICROSCOPE REFACTOR)
-        // =========================================================================
+        let recoilUp  = (WEP.ADSRecoilUp || 0.3) * 0.95, recLeft = WEP.ADSRecoilLeft || 0.1, recRight = WEP.ADSRecoilRight || 0.1, fsrm = WEP.FirstShotRecoilMul || 2.0;
         
-        // A. BARRELS (Modify isolated stat bases first)
-        if (barrel === 'hb') { 
-            staticMin *= 0.5; 
-            movingMin *= 0.85; // Correct Sym.gg multiplier for moving ADS
-            sips *= 0.925; 
-            recoilUp *= 1.3; 
-        }
-        if (barrel === 'mb') { 
-            sips *= 1.125; 
-            recoilUp *= 0.9; 
-        }
-        if (barrel === 'comp') { 
-            sips *= 1.3; 
-            recLeft *= 0.75; 
-            recRight *= 0.75; 
-        }
-        if (barrel === 'fh') { 
-            sdec *= 0.87; 
-        }
+        if (barrel === 'hb') { staticMin *= 0.5; movingMin *= 0.85; sips *= 0.925; recoilUp *= 1.3; }
+        else if (barrel === 'mb') { sips *= 1.125; recoilUp *= 0.9; }
+        else if (barrel === 'comp') { sips *= 1.3; recLeft *= 0.75; recRight *= 0.75; }
+        else if (barrel === 'fh') { sdec *= 0.87; }
 
-        // B. GRIPS / ACCESSORIES (Interact with already modified values)
-        if (grip === 'stubby') { 
-            sips *= 0.8; 
-            maxSpread *= 0.83; 
-            sdec *= 0.67; 
-        }
-        if (grip === 'angled') { 
-            fsrm *= 0.8; 
-            sdec *= 0.67; 
-        }
-        if (grip === 'ergo') { 
-            sdec *= 0.67;
-            // Reduces the movement penalty (difference) by exactly half
-            movingMin = staticMin + (movingMin - staticMin) * 0.5;
-        }
-        if (grip === 'bipod') { 
-            staticMin *= 0.05; 
-            movingMin *= 0.05; 
-            sips *= 0.1; 
-            maxSpread *= 0.165; 
-            recoilUp *= 0.1; 
-            recLeft *= 0.25; 
-            recRight *= 0.25; 
-            fsrm *= 0.15; 
-        }
+        if (grip === 'stubby') { sips *= 0.8; maxSpread *= 0.83; sdec *= 0.67; }
+        else if (grip === 'angled') { fsrm *= 0.8; sdec *= 0.67; }
+        else if (grip === 'ergo') { sdec *= 0.67; movingMin = staticMin + (movingMin - staticMin) * 0.5; }
+        else if (grip === 'bipod') { staticMin *= 0.05; movingMin *= 0.05; sips *= 0.1; maxSpread *= 0.165; recoilUp *= 0.1; recLeft *= 0.25; recRight *= 0.25; fsrm *= 0.15; }
 
-        // C. FINAL STATE RESOLUTION
         let baseMinSpread = isMoving ? movingMin : staticMin;
-        
-        // =========================================================================
-        // END OF ATTACHMENT CALCULATION BLOCK
-        // =========================================================================
-
         let fssm = WEP.FirstShotSpreadMultiplier || WEP.FirstShotSpreadMul || 1.0;
 
         let simSpread = baseMinSpread;
-        for (let i = 1; i < burst; i++) {
-            let activeSIPS = (i === 1) ? (sips * fssm) : sips;
-            simSpread += activeSIPS;
-        }
+        for (let i = 1; i < burst; i++) simSpread += (i === 1) ? (sips * fssm) : sips;
+        
         const currentSpread = Math.min(simSpread, maxSpread);
         const radiusM = dist * Math.tan(currentSpread * DEG2RAD);
 
-        // --- 3. RECOIL RESOLUTION ---
         let recoilAtLastShotY = 0, totalHorizontalWindow = 0;
+        let totalRecLeft = 0, totalRecRight = 0; 
         
         if (burst > 1) {
             recoilAtLastShotY = (recoilUp * fsrm) + (recoilUp * Math.max(0, burst - 2));
             totalHorizontalWindow = (recLeft + recRight) * (burst - 1);
+            totalRecLeft = recLeft * (burst - 1);   
+            totalRecRight = recRight * (burst - 1); 
         }
 
-        // --- SHOT-BY-SHOT DISCRETE SIMULATION ---
-        let shots = [];
-        let curSpread = baseMinSpread;
-        let curRecoilX = 0;
-        let curRecoilY = 0;
+        let shots = [], curSpread = baseMinSpread, curRecoilX = 0, curRecoilY = 0;
 
         for (let i = 1; i <= burst; i++) {
             let shotRadiusM = dist * Math.tan(curSpread * DEG2RAD);
+            let theta = Math.random() * 2 * Math.PI, r = Math.sqrt(Math.random()) * shotRadiusM;
+            let bulletX = curRecoilX + (r * Math.cos(theta)), bulletY = curRecoilY + (r * Math.sin(theta));
             
-            let theta = Math.random() * 2 * Math.PI;
-            let r = Math.sqrt(Math.random()) * shotRadiusM;
+            shots.push({ shotNumber: i, centerX: curRecoilX, centerY: curRecoilY, radiusM: shotRadiusM, bulletX, bulletY });
             
-            let bulletX = curRecoilX + (r * Math.cos(theta));
-            let bulletY = curRecoilY + (r * Math.sin(theta));
-            
-            shots.push({
-                shotNumber: i,
-                centerX: curRecoilX,
-                centerY: curRecoilY,
-                radiusM: shotRadiusM,
-                bulletX: bulletX,
-                bulletY: bulletY
-            });
-            
-            let activeSIPS = (i === 1) ? (sips * fssm) : sips;
-            curSpread = Math.min(curSpread + activeSIPS, maxSpread);
+            curSpread = Math.min(curSpread + ((i === 1) ? (sips * fssm) : sips), maxSpread);
             
             if (showRecoil) {
-                let activeFSRM = 1.0;
-                if (isBurstMode) {
-                    if (i === burst - 1) activeFSRM = fsrm;
-                } else {
-                    if (i === 1) activeFSRM = fsrm;
-                }
+                let activeFSRM = (isBurstMode && i === burst - 1) || (!isBurstMode && i === 1) ? fsrm : 1.0;
                 curRecoilY += (recoilUp * activeFSRM);
-                
-                let hDrift = (Math.random() * (recLeft + recRight)) - recLeft;
-                curRecoilX += hDrift;
+                curRecoilX += (Math.random() * (recLeft + recRight)) - recLeft;
             }
         }
         currentShotsArray = shots;
 
-        lastCalcParams = {
-            dist: dist,
-            radiusM: radiusM,
-            vRecoil: showRecoil ? recoilAtLastShotY : 0,
-            hRecoil: showRecoil ? totalHorizontalWindow : 0,
-            burst: burst,
-            stk: shotsToKill
-        };
+        // Speichern der asymmetrischen Rückstoßdaten
+        lastCalcParams = { dist, radiusM, vRecoil: showRecoil ? recoilAtLastShotY : 0, hRecoilLeft: showRecoil ? totalRecLeft : 0, hRecoilRight: showRecoil ? totalRecRight : 0, burst, stk: shotsToKill };
 
-        // --- 4. PACING ---
         const shotDelayMs = (60 / activeRoF) * 1000;
         const spreadResetMs = currentSpread > baseMinSpread ? shotDelayMs + (((currentSpread - baseMinSpread) / sdec) * 1000) : 0;
-
         const pacingBox = $('pacingBox');
 
         if (spreadResetMs > 0) {
-            const colorClass = spreadResetMs >= 150 ? "stat-box alert" : (spreadResetMs >= 120 ? "stat-box info" : "stat-box good");
-            const textColor = spreadResetMs >= 150 ? "#ff4444" : (spreadResetMs >= 120 ? "#33b5e5" : "#00C851");
-            
-            $('pacingVal').innerHTML = `<span class="stat-value" style="color:${textColor}">${Math.round(spreadResetMs)} ms</span><br><span style="font-size:12px; color:#7f8fa4;">Spread Reset Time</span>`;
-            pacingBox.className = colorClass;
+            const isAlert = spreadResetMs >= 150, isInfo = spreadResetMs >= 120;
+            pacingBox.className = `stat-box ${isAlert ? "alert" : (isInfo ? "info" : "good")}`;
+            $('pacingVal').innerHTML = `<span class="stat-value" style="color:${isAlert ? "#ff4444" : (isInfo ? "#33b5e5" : "#00C851")}">${Math.round(spreadResetMs)} ms</span><br><span style="font-size:12px; color:#7f8fa4;">Spread Reset Time</span>`;
         } else {
-            $('pacingVal').innerHTML = `<span class="stat-value" style="color:#00C851">Instant</span><br><span style="font-size:12px; color:#7f8fa4;">Spread Reset Time</span><br><span class="stat-label" style="color:#00C851; font-weight:bold;">Perfectly paced</span>`;
             pacingBox.className = "stat-box good";
+            $('pacingVal').innerHTML = `<span class="stat-value" style="color:#00C851">Instant</span><br><span style="font-size:12px; color:#7f8fa4;">Spread Reset Time</span><br><span class="stat-label" style="color:#00C851; font-weight:bold;">Perfectly paced</span>`;
         }
 
-        // --- 5. DYNAMIC LOADOUT RECOMMENDATION ENGINE ---
-        let bestBarrel = "Flash Hider / None";
-        let bestGrip = "Stubby Grip";
-        let recReason = "";
-
-        const weaponBaseRecoilUp = WEP.ADSRecoilUp || 0.3;
-        const weaponBaseHRecoil = (WEP.ADSRecoilLeft || 0.1) + (WEP.ADSRecoilRight || 0.1);
-        const weaponFSRM = WEP.FirstShotRecoilMul || 2.0;
+        let bestBarrel = "Flash Hider / None", bestGrip = "Stubby Grip", recReason = "";
+        const baseRecUp = WEP.ADSRecoilUp || 0.3, baseHRec = (WEP.ADSRecoilLeft || 0.1) + (WEP.ADSRecoilRight || 0.1), fShotM = WEP.FirstShotRecoilMul || 2.0;
 
         if (dist >= 90) {
-            bestGrip = "Bipod";
-            bestBarrel = "Heavy Barrel";
+            bestGrip = "Bipod"; bestBarrel = "Heavy Barrel";
             recReason = "Extreme long-range distance! The Bipod completely eliminates spread and recoil penalties, while the Heavy Barrel minimizes base spread.";
         } else if (isMoving) {
-            bestGrip = "Ergo Grip";
-            bestBarrel = dist >= 40 ? "Heavy Barrel" : "Flash Hider";
-            recReason = "Since you are moving, the Ergo Grip is essential (-50% move penalty). " + (dist >= 40 ? "Beyond 40m, the Heavy Barrel mitigates the remaining spread." : "A Flash Hider avoids negative stat penalties in CQC.");
+            bestGrip = "Ergo Grip"; bestBarrel = dist >= 40 ? "Heavy Barrel" : "Flash Hider";
+            recReason = `Since you are moving, the Ergo Grip is essential (-50% move penalty). ${dist >= 40 ? "Beyond 40m, the Heavy Barrel mitigates the remaining spread." : "A Flash Hider avoids negative stat penalties in CQC."}`;
         } else {
-            if (burst >= 5) {
-                bestGrip = "Stubby Grip";
-                recReason = "Long continuous bursts require the Stubby Grip to mitigate uncontrolled spread increase per shot (SIPS).";
-            } else if (burst >= 2 && weaponFSRM >= 1.8) {
-                bestGrip = "Angled Grip";
-                recReason = "Short precision bursts. Since your weapon has a heavy first-shot kick, the Angled Grip is ideal to absorb it.";
-            } else {
-                bestGrip = "Stubby Grip";
-                recReason = "Standard all-around precision. The Stubby Grip ensures your follow-up shots in the burst remain tightly grouped.";
-            }
+            if (burst >= 5) { bestGrip = "Stubby Grip"; recReason = "Long continuous bursts require the Stubby Grip to mitigate uncontrolled spread increase per shot (SIPS)."; }
+            else if (burst >= 2 && fShotM >= 1.8) { bestGrip = "Angled Grip"; recReason = "Short precision bursts. Since your weapon has a heavy first-shot kick, the Angled Grip is ideal to absorb it."; }
+            else { bestGrip = "Stubby Grip"; recReason = "Standard all-around precision. The Stubby Grip ensures your follow-up shots in the burst remain tightly grouped."; }
 
             if (dist >= 45) {
-                if (weaponBaseRecoilUp > 0.38) {
-                    bestBarrel = "Flash Hider";
-                    recReason += " At this distance, a Heavy Barrel makes the vertical recoil too difficult to control, so the Flash Hider is safer.";
-                } else {
-                    bestBarrel = "Heavy Barrel";
-                    recReason += " Beyond 45m, the Heavy Barrel's reduced base spread ensures more reliable hits on target.";
-                }
+                if (baseRecUp > 0.38) { bestBarrel = "Flash Hider"; recReason += " At this distance, a Heavy Barrel makes the vertical recoil too difficult to control, so the Flash Hider is safer."; }
+                else { bestBarrel = "Heavy Barrel"; recReason += " Beyond 45m, the Heavy Barrel's reduced base spread ensures more reliable hits on target."; }
             } else {
-                if (weaponBaseHRecoil > 0.6) {
-                    bestBarrel = "Compensator";
-                    recReason += " In close quarters, your weapon pulls heavily to the sides. The Compensator stabilizes this horizontal drift.";
-                } else if (weaponBaseRecoilUp > 0.38) {
-                    bestBarrel = "Muzzle Brake";
-                    recReason += " High vertical kick at close range. The Muzzle Brake makes recoil compensation much easier in CQC.";
-                } else {
-                    bestBarrel = "Flash Hider / None";
-                    recReason += " In close quarters, a Flash Hider is sufficient and avoids any negative stat penalties.";
-                }
+                if (baseHRec > 0.6) { bestBarrel = "Compensator"; recReason += " In close quarters, your weapon pulls heavily to the sides. The Compensator stabilizes this horizontal drift."; }
+                else if (baseRecUp > 0.38) { bestBarrel = "Muzzle Brake"; recReason += " High vertical kick at close range. The Muzzle Brake makes recoil compensation much easier in CQC."; }
+                else { bestBarrel = "Flash Hider / None"; recReason += " In close quarters, a Flash Hider is sufficient and avoids any negative stat penalties."; }
             }
         }
 
-        $('loadoutRecValue').innerHTML = `
-            <b>Barrel:</b> <span style="color:#00a3ff">${bestBarrel}</span><br>
-            <b>Underbarrel:</b> <span style="color:#00a3ff">${bestGrip}</span><br>
-            <span style="font-size:11px; color:#7f8fa4; display:block; margin-top:5px;"><i>${recReason}</i></span>
-        `;
+        $('loadoutRecValue').innerHTML = `<b>Barrel:</b> <span style="color:#00a3ff">${bestBarrel}</span><br><b>Underbarrel:</b> <span style="color:#00a3ff">${bestGrip}</span><i>${recReason}</i>`;
 
-        // --- UI UPDATES ---
         const canKill = burst >= shotsToKill;
-        
-        $('curDmg').innerHTML = `<span style="color:${canKill ? '#00C851' : '#ff4444'};">${dmg.toFixed(1)} HP</span> <br><span class="stat-label">(${shotsToKill} to Kill)</span>`;
-        $('dmgBox').className = canKill ? "stat-box good" : "stat-box alert";
+        $('curDmg').innerHTML = `<span style="color:${canKill ? '#00C851' : '#ff4444'};">${dmg.toFixed(1)} HP</span><br><span class="stat-label">(${shotsToKill} to Kill)</span>`;
+        $('dmgBox').className = `stat-box ${canKill ? "good" : "alert"}`;
 
-        $('ttkVal').innerHTML = `<span style="color:${canKill ? '#ffffff' : '#ff4444'};">${Math.round(totalTTKMs)} ms</span> <br><span class="stat-label">(@ ${activeRoF} RPM)</span>` + (!canKill ? " <br><span style='font-size:11px; color:#ff4444'>(Burst drops short of kill!)</span>" : "");
-        $('ttkBox').className = canKill ? "stat-box good" : "stat-box alert";
+        $('ttkVal').innerHTML = `<span style="color:${canKill ? '#ffffff' : '#ff4444'};">${Math.round(totalTTKMs)} ms</span><br><span class="stat-label">(@ ${activeRoF} RPM)</span>${!canKill ? "<br><span style='font-size:11px; color:#ff4444'>(Burst drops short of kill!)</span>" : ""}`;
+        $('ttkBox').className = `stat-box ${canKill ? "good" : "alert"}`;
 
-        $('maxSpreadVal').innerHTML = `${currentSpread.toFixed(3)}° <br><span style="color:#7f8fa4; font-size:12px;">(Cap: ${maxSpread.toFixed(2)}°)</span>`;
+        $('maxSpreadVal').innerHTML = `${currentSpread.toFixed(3)}°<br><span style="color:#7f8fa4; font-size:12px;">(Cap: ${maxSpread.toFixed(2)}°)</span>`;
         
-        const displayedVRecoil = showRecoil ? recoilAtLastShotY : 0;
-        const displayedHRecoil = showRecoil ? totalHorizontalWindow : 0;
-        $('recoilVal').innerHTML = `Vert: +${displayedVRecoil.toFixed(2)}° <span style="color:#7f8fa4; font-size:12px;">${isBurstMode ? "(Burst Mode)" : "(Auto FSRM)"} ${!showRecoil ? "[COMPENSATED]" : ""}</span><br><span style="color:#7f8fa4; font-size:12px;">Horiz Window: ${displayedHRecoil.toFixed(2)}° (L ${(showRecoil ? recLeft : 0).toFixed(2)} / R ${(showRecoil ? recRight : 0).toFixed(2)})</span>`;
-        
+        $('recoilVal').innerHTML = `Vert: +${(showRecoil ? recoilAtLastShotY : 0).toFixed(2)}° <span style="color:#7f8fa4; font-size:12px;">${isBurstMode ? "(Burst Mode)" : "(Auto FSRM)"} ${!showRecoil ? "[COMPENSATED]" : ""}</span><br><span style="color:#7f8fa4; font-size:12px;">Horiz Window: ${(showRecoil ? totalHorizontalWindow : 0).toFixed(2)}° (L ${(showRecoil ? recLeft : 0).toFixed(2)} / R ${(showRecoil ? recRight : 0).toFixed(2)})</span>`;
         $('dropVal').innerText = `${(0.5 * (WEP.BDrop || 15) * (flightTime * flightTime) * 100).toFixed(1)} cm`;
         $('leadVal').innerText = `${(6.5 * flightTime).toFixed(2)} m`;
 
-        drawCanvas(lastCalcParams.dist, lastCalcParams.radiusM, lastCalcParams.vRecoil, lastCalcParams.hRecoil, lastCalcParams.burst, lastCalcParams.stk, shots, false, 0);
+        drawCanvas(lastCalcParams.dist, lastCalcParams.radiusM, lastCalcParams.vRecoil, lastCalcParams.hRecoilLeft, lastCalcParams.hRecoilRight, lastCalcParams.burst, lastCalcParams.stk, shots, false, 0);
     }
 
-    function drawCanvas(dist, radiusM, vRecoil, hRecoil, burst, stk, shots, isAnimating = false, animationIndex = 0) {
-        const cvs = $('targetCanvas'), ctx = cvs.getContext('2d');
+    function drawCanvas(dist, radiusM, vRecoil, hRecLeft, hRecRight, burst, stk, shots, isAnimating = false, animationIndex = 0) {
+        const cvs = $('targetCanvas'), ctx = cvs.getContext('2d'), dpr = window.devicePixelRatio || 1;
         
-        // HIGH-DPI / RETINA CANVAS RESOLUTION SCALING
-        const dpr = window.devicePixelRatio || 1;
         if (cvs.width !== 400 * dpr || cvs.height !== 300 * dpr) {
-            cvs.width = 400 * dpr;
-            cvs.height = 300 * dpr;
+            cvs.width = 400 * dpr; cvs.height = 300 * dpr;
             ctx.scale(dpr, dpr);
         }
         
         ctx.clearRect(0, 0, 400, 300);
         
-        const rY = dist * Math.tan(vRecoil * DEG2RAD), rX = dist * Math.tan((hRecoil / 2) * DEG2RAD);
-        const maxM = Math.max(0.45, rY + radiusM) + 1.35;
+        // Linken und rechten Kegel getrennt berechnen
+        const rY = dist * Math.tan(vRecoil * DEG2RAD);
+        const rXLeft = dist * Math.tan(hRecLeft * DEG2RAD);
+        const rXRight = dist * Math.tan(hRecRight * DEG2RAD);
+        
+        // Skalierung an den breitesten Punkt anpassen
+        const maxM = Math.max(0.45, rY + radiusM, rXLeft + radiusM, rXRight + radiusM) + 1.35;
         const ppm = Math.min(Math.max(15, 3000 / dist), (300 - 40) / maxM);
-        
-        const cx = 200; 
-        const topY = ((300 - (maxM * ppm)) / 2) + ((Math.max(0.45, rY + radiusM) * ppm) - (0.45 * ppm));
+        const cx = 200, topY = ((300 - (maxM * ppm)) / 2) + ((Math.max(0.45, rY + radiusM) * ppm) - (0.45 * ppm));
+        const baseY = topY + 0.45 * ppm;
 
-        // Draw silhouette
-        ctx.beginPath();
-        ctx.moveTo(cx, topY);
-        SILHOUETTE_PTS.forEach(p => ctx.lineTo(cx + p[0] * ppm, topY + p[1] * ppm));
-        SILHOUETTE_PTS_REV.forEach(p => ctx.lineTo(cx - p[0] * ppm, topY + p[1] * ppm));
-        ctx.closePath();
-        ctx.fillStyle = '#1c2430'; ctx.fill();
-        ctx.strokeStyle = '#323f54'; ctx.lineWidth = 1.5; ctx.stroke();
+        const polyPoints = [];
+        SILHOUETTE_PTS.forEach(p => polyPoints.push([cx + p[0] * ppm, topY + p[1] * ppm]));
+        SILHOUETTE_PTS_REV.forEach(p => polyPoints.push([cx - p[0] * ppm, topY + p[1] * ppm]));
 
-        const cy = topY + (0.45 * ppm) - (rY * ppm), radPx = radiusM * ppm, hPx = rX * ppm;
+        ctx.beginPath(); ctx.moveTo(polyPoints[0][0], polyPoints[0][1]);
+        polyPoints.forEach(p => ctx.lineTo(p[0], p[1]));
+        ctx.closePath(); ctx.fillStyle = '#1c2430'; ctx.fill(); ctx.strokeStyle = '#323f54'; ctx.lineWidth = 1.5; ctx.stroke();
+
+        const cy = baseY - (rY * ppm), radPx = radiusM * ppm;
+        const hPxLeft = rXLeft * ppm, hPxRight = rXRight * ppm; 
         
-        // Capsule shadow (Drift window of the final shot)
+        // Asymmetrischer blauer Indikator
         ctx.beginPath();
-        ctx.arc(cx + hPx, cy, radPx, -Math.PI / 2, Math.PI / 2);
-        ctx.arc(cx - hPx, cy, radPx, Math.PI / 2, 3 * Math.PI / 2);
+        ctx.arc(cx + hPxRight, cy, radPx, -Math.PI / 2, Math.PI / 2);
+        ctx.arc(cx - hPxLeft, cy, radPx, Math.PI / 2, 3 * Math.PI / 2);
         ctx.closePath();
         
         const isBad = radiusM > 0.3 || burst < stk;
@@ -687,40 +685,52 @@ TimeToLive    1.5</textarea>
         ctx.strokeStyle = isBad ? 'rgba(255, 68, 68, 0.4)' : 'rgba(0, 163, 255, 0.35)';
         ctx.fill(); ctx.lineWidth = 1.5; ctx.stroke();
 
-        // Crosshair
-        ctx.fillStyle = '#fff';
-        ctx.fillRect(cx - 15, topY + (0.45 * ppm) - 1, 30, 2);
-        ctx.fillRect(cx - 1, topY + (0.45 * ppm) - 15, 2, 30);
+        ctx.fillStyle = '#fff'; ctx.fillRect(cx - 15, baseY - 1, 30, 2); ctx.fillRect(cx - 1, baseY - 15, 2, 30);
         
         if (vRecoil > 0) {
-            ctx.beginPath(); ctx.moveTo(cx, topY + 0.45 * ppm); ctx.lineTo(cx, cy);
-            ctx.strokeStyle = "rgba(0, 163, 255, 0.4)"; ctx.setLineDash([3, 3]); ctx.stroke(); ctx.setLineDash([]);
-        }
-
-        // Plot bullet holes
-        let shotsToDraw = isAnimating ? shots.slice(0, animationIndex + 1) : shots;
-        
-        shotsToDraw.forEach(s => {
-            let bPxX = cx + (s.bulletX * ppm);
-            let bPxY = (topY + 0.45 * ppm) - (s.bulletY * ppm);
-            
-            if (isAnimating && s.shotNumber === (animationIndex + 1)) {
-                let sCenterX = cx + (s.centerX * ppm);
-                let sCenterY = (topY + 0.45 * ppm) - (s.centerY * ppm);
+            // Asymmetrischer Trichter vom Ursprung
+            if (hPxLeft > 0 || hPxRight > 0) {
                 ctx.beginPath();
-                ctx.arc(sCenterX, sCenterY, s.radiusM * ppm, 0, 2 * Math.PI);
-                ctx.strokeStyle = 'rgba(0, 163, 255, 0.6)';
-                ctx.lineWidth = 1;
-                ctx.stroke();
+                ctx.moveTo(cx, baseY);
+                ctx.lineTo(cx - hPxLeft, cy);
+                ctx.lineTo(cx + hPxRight, cy);
+                ctx.closePath();
+                ctx.fillStyle = "rgba(0, 163, 255, 0.05)";
+                ctx.fill();
             }
 
+            ctx.beginPath(); ctx.moveTo(cx, baseY); ctx.lineTo(cx, cy);
+            ctx.strokeStyle = "rgba(0, 163, 255, 0.4)"; ctx.setLineDash([3, 3]); ctx.stroke(); ctx.setLineDash([]);
+            
             ctx.beginPath();
-            ctx.arc(bPxX, bPxY, 3, 0, 2 * Math.PI);
-            ctx.fillStyle = (s.shotNumber === 1) ? '#ff3333' : '#00ffcc';
+            ctx.moveTo(cx, cy);
+            ctx.lineTo(cx - 5, cy + 6);
+            ctx.lineTo(cx + 5, cy + 6);
+            ctx.fillStyle = "rgba(0, 163, 255, 0.6)";
             ctx.fill();
-            ctx.strokeStyle = '#000000';
-            ctx.lineWidth = 0.8;
-            ctx.stroke();
+        }
+
+        (isAnimating ? shots.slice(0, animationIndex + 1) : shots).forEach(s => {
+            let bPxX = cx + (s.bulletX * ppm), bPxY = baseY - (s.bulletY * ppm);
+            
+            if (isAnimating && s.shotNumber === (animationIndex + 1)) {
+                ctx.beginPath(); ctx.arc(cx + (s.centerX * ppm), baseY - (s.centerY * ppm), s.radiusM * ppm, 0, 2 * Math.PI);
+                ctx.strokeStyle = 'rgba(0, 163, 255, 0.6)'; ctx.lineWidth = 1; ctx.stroke();
+            }
+
+            const isHit = pointInPolygon([bPxX, bPxY], polyPoints);
+
+            ctx.beginPath(); ctx.arc(bPxX, bPxY, 3, 0, 2 * Math.PI);
+            
+            if (s.shotNumber === 1) { 
+                ctx.fillStyle = isHit ? '#ff3333' : 'rgba(255, 51, 51, 0.4)';
+                ctx.strokeStyle = isHit ? '#000000' : 'rgba(0, 0, 0, 0.3)';
+            } else { 
+                ctx.fillStyle = isHit ? '#00C851' : 'rgba(255, 255, 255, 0.3)';
+                ctx.strokeStyle = isHit ? '#000000' : 'rgba(0, 0, 0, 0.2)';
+            }
+            
+            ctx.fill(); ctx.lineWidth = 0.8; ctx.stroke();
         });
     }
 
