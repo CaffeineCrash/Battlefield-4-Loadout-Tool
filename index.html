@@ -43,9 +43,48 @@
         #parseStatus { margin-top: 10px; font-size: 12px; color: #00C851; }
         .val-display { float: right; color: #00a3ff; font-weight: bold; }
         
-        canvas { background: #070a0f; border: 2px solid #1e2635; border-radius: 8px; width: 100%; max-width: 400px; display: block; margin: 0 auto 10px auto; }
+        .canvas-wrapper { 
+            background: #070a0f; 
+            border: 2px solid #1e2635; 
+            border-radius: 8px; 
+            padding: 15px;
+            margin-bottom: 15px;
+            display: flex;
+            gap: 15px;
+            align-items: center;
+            justify-content: center;
+            flex-wrap: wrap;
+        }
         
-        .legend-container { display: flex; justify-content: center; gap: 15px; font-size: 12px; color: #7f8fa4; margin-bottom: 15px; flex-wrap: wrap; }
+        canvas { 
+            width: 200px;
+            height: 200px;
+            display: block;
+            border: 1px solid #2a374e;
+            border-radius: 4px;
+        }
+        
+        .canvas-stats {
+            font-size: 12px;
+            color: #7f8fa4;
+            line-height: 1.6;
+            min-width: 180px;
+        }
+        
+        .canvas-stats .stat-line { 
+            display: flex;
+            justify-content: space-between;
+            padding: 4px 0;
+            border-bottom: 1px solid #1e2635;
+        }
+        
+        .canvas-stats .stat-line:last-child { border-bottom: none; }
+        .canvas-stats .stat-label { color: #7f8fa4; }
+        .canvas-stats .stat-val { color: #00a3ff; font-weight: bold; }
+        .canvas-stats .hit { color: #00C851; }
+        .canvas-stats .miss { color: #ff4444; }
+        
+        .legend-container { display: flex; justify-content: center; gap: 10px; font-size: 11px; color: #7f8fa4; margin-bottom: 15px; flex-wrap: wrap; }
         .legend-item { display: flex; align-items: center; gap: 5px; }
         
         .stats-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
@@ -71,11 +110,9 @@
         .stat-label { color: #7f8fa4; font-size: 12px; display: block; margin-bottom: 4px; position: relative; }
         .stat-value { font-weight: bold; font-size: 16px; color: #ffffff; }
         
-        #btnFire { background: #00ffcc; color: #0b0e14; font-weight: bold; margin-bottom: 20px; border-radius: 4px; }
+        #btnFire { background: #00ffcc; color: #0b0e14; font-weight: bold; margin-bottom: 15px; border-radius: 4px; }
         #btnFire:hover:not(:disabled) { background: #00cc99; }
 
-        .class-badge { display: inline-block; background: #00a3ff; color: #0b0e14; padding: 4px 8px; border-radius: 3px; font-size: 11px; font-weight: bold; margin-top: 8px; }
-        
         /* TOOLTIP CSS */
         .tooltip {
             position: relative;
@@ -328,16 +365,50 @@ TimeToLive	1.5 </textarea>
 
     <div class="panel visualizer">
         <h2>3. Analysis & Precision Visualizer</h2>
-        <canvas id="targetCanvas"></canvas>
         
-        <div class="legend-container">
-            <div class="legend-item"><span style="color:#ff3333; font-size:16px;">●</span> First Shot (FSRM)</div>
-            <div class="legend-item"><span style="color:#00C851; font-size:16px;">●</span> Hit</div>
-            <div class="legend-item"><span style="color:rgba(255,255,255,0.4); font-size:16px;">●</span> Miss</div>
-            <div class="legend-item"><span style="border: 1px solid rgba(0, 163, 255, 0.5); border-radius:50%; display:inline-block; width:10px; height:10px; background:rgba(0, 163, 255, 0.1);"></span> Cone Spread</div>
+        <button id="btnFire">🔥 Animate Firing (Real-Time RoF)</button>
+        
+        <div class="canvas-wrapper">
+            <div style="flex: 1; min-width: 220px; display: flex; flex-direction: column; align-items: center;">
+                <canvas id="targetCanvas"></canvas>
+                <div class="legend-container" style="margin-top: 10px; margin-bottom: 0;">
+                    <div class="legend-item"><span style="color:#ff3333; font-size:14px;">●</span> Shot 1</div>
+                    <div class="legend-item"><span style="color:#00C851; font-size:14px;">●</span> Hit</div>
+                    <div class="legend-item"><span style="color:rgba(255,255,255,0.4); font-size:14px;">●</span> Miss</div>
+                </div>
+            </div>
+            <div class="canvas-stats">
+                <div class="stat-line">
+                    <span class="stat-label">Total Shots:</span>
+                    <span class="stat-val" id="statsShots">-</span>
+                </div>
+                <div class="stat-line">
+                    <span class="stat-label">Hits:</span>
+                    <span class="stat-val hit" id="statsHits">-</span>
+                </div>
+                <div class="stat-line">
+                    <span class="stat-label">Misses:</span>
+                    <span class="stat-val miss" id="statsMisses">-</span>
+                </div>
+                <div class="stat-line">
+                    <span class="stat-label">Accuracy:</span>
+                    <span class="stat-val" id="statsAccuracy">-</span>
+                </div>
+                <div class="stat-line" style="border-top: 1px solid #1e2635; padding-top: 6px; margin-top: 6px;">
+                    <span class="stat-label">Distance:</span>
+                    <span class="stat-val" id="statsDist">-</span>
+                </div>
+                <div class="stat-line">
+                    <span class="stat-label">Spread:</span>
+                    <span class="stat-val" id="statsSpread">-</span>
+                </div>
+                <div class="stat-line">
+                    <span class="stat-label">V.Recoil:</span>
+                    <span class="stat-val" id="statsVRecoil">-</span>
+                </div>
+            </div>
         </div>
 
-        <button id="btnFire">🔥 Animate Firing (Real-Time RoF)</button>
         <div class="stats-grid">
             <div class="stat-box" id="dmgBox">
                 <span class="stat-label">Damage over Distance</span>
@@ -366,7 +437,7 @@ TimeToLive	1.5 </textarea>
             <div class="stat-box">
                 <span class="stat-label">Recoil per Burst 
                     <span class="tooltip" style="color:#7f8fa4;">[?]
-                        <span class="tooltiptext" style="color:#f0f4f8;">The total combined vertical and horizontal camera kick accumulated over your selected burst length.</span>
+                        <span class="tooltiptext" style="color:#f0f4f8;">Vertical recoil and horizontal recoil window accumulated over your selected burst length.</span>
                     </span>
                 </span>
                 <span class="stat-value" id="recoilVal">-</span>
@@ -391,7 +462,7 @@ TimeToLive	1.5 </textarea>
     const $ = id => document.getElementById(id);
     const DEG2RAD = Math.PI / 180;
     
-    let WEP = {}, animationTimeout = null, currentShotsArray = [], currentActiveRoF = 770, lastCalcParams = {}, currentWeaponClass = null;
+    let WEP = {}, animationTimeout = null, currentShotsArray = [], currentActiveRoF = 770, lastCalcParams = {}, currentWeaponClass = null, shotSeeds = [];
 
     const SILHOUETTE_PTS = [
         [0,0], [0.08,0.02], [0.11,0.07], [0.1,0.14], [0.07,0.19], [0.06,0.23], [0.16,0.27], [0.28,0.32],
@@ -543,10 +614,26 @@ TimeToLive	1.5 </textarea>
                 $('burst').style.opacity = "1";
                 $('burst').style.cursor = "pointer";
             }
+            
+            // Initialen Seed-Satz beim Laden erstellen
+            regenerateSeeds();
             calculate();
         } else {
             status.style.color = "#ff4444";
             status.innerText = "Error: Data format unrecognized.";
+        }
+    }
+
+    function regenerateSeeds() {
+        const burstSlider = $('burst');
+        const burst = parseInt(burstSlider.value) || 1;
+        shotSeeds = [];
+        for (let i = 0; i < burst; i++) {
+            shotSeeds.push({
+                theta: Math.random() * 2 * Math.PI,
+                rRand: Math.sqrt(Math.random()),
+                recoilRand: Math.random()
+            });
         }
     }
 
@@ -561,6 +648,10 @@ TimeToLive	1.5 </textarea>
     });
 
     $('btnFire').addEventListener('click', () => {
+        // Schüsse neu auswürfeln bei Klick auf den Button
+        regenerateSeeds();
+        calculate();
+
         if (!currentShotsArray?.length) return;
         if (animationTimeout) clearTimeout(animationTimeout);
         
@@ -575,6 +666,8 @@ TimeToLive	1.5 </textarea>
             } else {
                 updateFireBtn(false, "🔥 Animate Firing (Real-Time RoF)");
                 animationTimeout = null;
+                drawCanvas(lastCalcParams.dist, lastCalcParams.radiusM, lastCalcParams.vRecoil, lastCalcParams.hRecoilLeft, lastCalcParams.hRecoilRight, lastCalcParams.burst, lastCalcParams.stk, currentShotsArray, false, 0);
+                updateCanvasStats(currentShotsArray);
             }
         }
         tick();
@@ -601,6 +694,46 @@ TimeToLive	1.5 </textarea>
         }
         
         return { optimalMin, optimalMax };
+    }
+
+    function updateCanvasStats(shots) {
+        let hits = 0, misses = 0;
+        const polyPoints = [];
+        const cvs = $('targetCanvas');
+        
+        const dist = lastCalcParams.dist;
+        const radiusM = lastCalcParams.radiusM;
+        const vRecoil = lastCalcParams.vRecoil;
+        const hRecLeft = lastCalcParams.hRecoilLeft;
+        const hRecRight = lastCalcParams.hRecoilRight;
+        
+        const rY = dist * Math.tan(vRecoil * DEG2RAD);
+        const rXLeft = dist * Math.tan(hRecLeft * DEG2RAD);
+        const rXRight = dist * Math.tan(hRecRight * DEG2RAD);
+        
+        const maxM = Math.max(0.45, rY + radiusM, rXLeft + radiusM, rXRight + radiusM) + 1.35;
+        const ppm = Math.min(Math.max(15, 3000 / dist), (150 - 20) / maxM);
+        const cx = 100, topY = ((150 - (maxM * ppm)) / 2) + ((Math.max(0.45, rY + radiusM) * ppm) - (0.45 * ppm));
+        const baseY = topY + 0.45 * ppm;
+        
+        SILHOUETTE_PTS.forEach(p => polyPoints.push([cx + p[0] * ppm, topY + p[1] * ppm]));
+        SILHOUETTE_PTS_REV.forEach(p => polyPoints.push([cx - p[0] * ppm, topY + p[1] * ppm]));
+        
+        shots.forEach(s => {
+            const isHit = pointInPolygon([cx + (s.bulletX * ppm), baseY - (s.bulletY * ppm)], polyPoints);
+            if (isHit) hits++;
+            else misses++;
+        });
+        
+        const accuracy = shots.length > 0 ? ((hits / shots.length) * 100).toFixed(1) : 0;
+        
+        $('statsShots').innerText = shots.length;
+        $('statsHits').innerText = hits;
+        $('statsMisses').innerText = misses;
+        $('statsAccuracy').innerText = `${accuracy}%`;
+        $('statsDist').innerText = `${dist}m`;
+        $('statsSpread').innerText = `${radiusM.toFixed(2)}m`;
+        $('statsVRecoil').innerText = `${vRecoil.toFixed(2)}°`;
     }
 
     function calculate() {
@@ -707,9 +840,19 @@ TimeToLive	1.5 </textarea>
         let shots = [], curSpread = baseMinSpread, curRecoilX = 0, curRecoilY = 0;
 
         for (let i = 1; i <= burst; i++) {
+            // Falls temporär mehr Seeds gebraucht werden als da sind, dynamisch auffüllen
+            if (!shotSeeds[i - 1]) {
+                shotSeeds[i - 1] = {
+                    theta: Math.random() * 2 * Math.PI,
+                    rRand: Math.sqrt(Math.random()),
+                    recoilRand: Math.random()
+                };
+            }
+            
+            let seed = shotSeeds[i - 1];
             let shotRadiusM = dist * Math.tan(curSpread * DEG2RAD);
-            let theta = Math.random() * 2 * Math.PI, r = Math.sqrt(Math.random()) * shotRadiusM;
-            let bulletX = curRecoilX + (r * Math.cos(theta)), bulletY = curRecoilY + (r * Math.sin(theta));
+            let r = seed.rRand * shotRadiusM;
+            let bulletX = curRecoilX + (r * Math.cos(seed.theta)), bulletY = curRecoilY + (r * Math.sin(seed.theta));
             
             shots.push({ shotNumber: i, centerX: curRecoilX, centerY: curRecoilY, radiusM: shotRadiusM, bulletX, bulletY });
             
@@ -718,7 +861,7 @@ TimeToLive	1.5 </textarea>
             if (showRecoil) {
                 let activeFSRM = (isBurstMode && i === burst - 1) || (!isBurstMode && i === 1) ? fsrm : 1.0;
                 curRecoilY += (recoilUp * activeFSRM);
-                curRecoilX += (Math.random() * (recLeft + recRight)) - recLeft;
+                curRecoilX += (seed.recoilRand * (recLeft + recRight)) - recLeft;
             }
         }
         currentShotsArray = shots;
@@ -738,20 +881,17 @@ TimeToLive	1.5 </textarea>
             $('pacingVal').innerHTML = `<span class="stat-value" style="color:#00C851">Instant</span><br><span style="font-size:12px; color:#7f8fa4;">Spread Reset Time</span>`;
         }
 
-        // Sweetspot Berechnung
+        // Neues Ampelsystem für Optimal Sweetspot Range (0 bis X)
         const sweetspot = calculateOptimalSweetspot();
         const sweetspotBox = $('sweetspotBox');
-        const isInSweetspot = dist >= sweetspot.optimalMin && dist <= sweetspot.optimalMax;
+        const maxRange = Math.round(sweetspot.optimalMax);
         
-        if (isInSweetspot) {
+        if (dist <= maxRange) {
             sweetspotBox.className = "stat-box good";
-            $('sweetspotVal').innerHTML = `<span class="stat-value" style="color:#00C851">${Math.round(sweetspot.optimalMin)}-${Math.round(sweetspot.optimalMax)} m</span><br><span style="font-size:12px; color:#7f8fa4;">✓ In Optimal Range</span>`;
-        } else if (dist < sweetspot.optimalMin) {
-            sweetspotBox.className = "stat-box alert";
-            $('sweetspotVal').innerHTML = `<span class="stat-value" style="color:#ff4444">${Math.round(sweetspot.optimalMin)}-${Math.round(sweetspot.optimalMax)} m</span><br><span style="font-size:12px; color:#7f8fa4;">Too Close</span>`;
+            $('sweetspotVal').innerHTML = `<span class="stat-value" style="color:#00C851">0-${maxRange} m</span><br><span style="font-size:12px; color:#7f8fa4;">✓ In Optimal Range</span>`;
         } else {
-            sweetspotBox.className = "stat-box info";
-            $('sweetspotVal').innerHTML = `<span class="stat-value" style="color:#33b5e5">${Math.round(sweetspot.optimalMin)}-${Math.round(sweetspot.optimalMax)} m</span><br><span style="font-size:12px; color:#7f8fa4;">Too Far</span>`;
+            sweetspotBox.className = "stat-box alert";
+            $('sweetspotVal').innerHTML = `<span class="stat-value" style="color:#ff4444">0-${maxRange} m</span><br><span style="font-size:12px; color:#7f8fa4;">Too Far</span>`;
         }
 
         let bestBarrel = "Flash Hider / None", bestGrip = "Stubby Grip", recReason = "";
@@ -798,35 +938,38 @@ TimeToLive	1.5 </textarea>
         $('curDmg').innerHTML = `<span style="color:${canKill ? '#00C851' : '#ff4444'};">${dmg.toFixed(1)} HP</span><br><span class="stat-label">(${shotsToKill} to Kill)</span>`;
         $('dmgBox').className = `stat-box ${canKill ? "good" : "alert"}`;
 
-        $('ttkVal').innerHTML = `<span style="color:${canKill ? '#ffffff' : '#ff4444'};">${Math.round(totalTTKMs)} ms</span><br><span class="stat-label">(@ ${activeRoF} RPM)</span>${!canKill ? "<br><span style='color:#ff4444;'>Insufficient Burst</span>" : ""}`;
+        $('ttkVal').innerHTML = `<span style="color:${canKill ? '#ffffff' : '#ff4444'};">${Math.round(totalTTKMs)} ms</span><br><span class="stat-label">(@ ${activeRoF} RPM)</span><br><span style="color:${canKill ? '#00C851' : '#ff4444'}; font-size:12px;">${canKill ? "✓ Can Kill" : "✗ Insufficient Burst"}</span>`;
         $('ttkBox').className = `stat-box ${canKill ? "good" : "alert"}`;
 
         $('maxSpreadVal').innerHTML = `${currentSpread.toFixed(3)}°<br><span style="color:#7f8fa4; font-size:12px;">(Cap: ${maxSpread.toFixed(2)}°)</span>`;
         
-        $('recoilVal').innerHTML = `Vert: +${(showRecoil ? recoilAtLastShotY : 0).toFixed(2)}°<br>Left: ${(showRecoil ? totalRecLeft : 0).toFixed(2)}°<br>Right: ${(showRecoil ? totalRecRight : 0).toFixed(2)}° <span style="color:#7f8fa4; font-size:12px;">${isBurstMode ? "(Burst Mode)" : "(Auto FSRM)"} ${!showRecoil ? "| DISABLED" : ""}</span>`;
+        const horizWindow = (totalRecLeft + totalRecRight).toFixed(2);
+        $('recoilVal').innerHTML = `Vert: +${(showRecoil ? recoilAtLastShotY : 0).toFixed(2)}°<br>Horiz Window: ${horizWindow}°<br><span style="color:#7f8fa4; font-size:11px;">(L ${(showRecoil ? totalRecLeft : 0).toFixed(2)}° / R ${(showRecoil ? totalRecRight : 0).toFixed(2)}°)</span>`;
+        
         $('dropVal').innerText = `${(0.5 * (WEP.BDrop || 15) * (flightTime * flightTime) * 100).toFixed(1)} cm`;
         $('leadVal').innerText = `${(6.5 * flightTime).toFixed(2)} m`;
 
         drawCanvas(lastCalcParams.dist, lastCalcParams.radiusM, lastCalcParams.vRecoil, lastCalcParams.hRecoilLeft, lastCalcParams.hRecoilRight, lastCalcParams.burst, lastCalcParams.stk, shots, false, 0);
+        updateCanvasStats(shots);
     }
 
     function drawCanvas(dist, radiusM, vRecoil, hRecLeft, hRecRight, burst, stk, shots, isAnimating = false, animationIndex = 0) {
         const cvs = $('targetCanvas'), ctx = cvs.getContext('2d'), dpr = window.devicePixelRatio || 1;
         
-        if (cvs.width !== 400 * dpr || cvs.height !== 300 * dpr) {
-            cvs.width = 400 * dpr; cvs.height = 300 * dpr;
+        if (cvs.width !== 200 * dpr || cvs.height !== 200 * dpr) {
+            cvs.width = 200 * dpr; cvs.height = 200 * dpr;
             ctx.scale(dpr, dpr);
         }
         
-        ctx.clearRect(0, 0, 400, 300);
+        ctx.clearRect(0, 0, 200, 200);
         
         const rY = dist * Math.tan(vRecoil * DEG2RAD);
         const rXLeft = dist * Math.tan(hRecLeft * DEG2RAD);
         const rXRight = dist * Math.tan(hRecRight * DEG2RAD);
         
         const maxM = Math.max(0.45, rY + radiusM, rXLeft + radiusM, rXRight + radiusM) + 1.35;
-        const ppm = Math.min(Math.max(15, 3000 / dist), (300 - 40) / maxM);
-        const cx = 200, topY = ((300 - (maxM * ppm)) / 2) + ((Math.max(0.45, rY + radiusM) * ppm) - (0.45 * ppm));
+        const ppm = Math.min(Math.max(15, 3000 / dist), (150 - 20) / maxM);
+        const cx = 100, topY = ((150 - (maxM * ppm)) / 2) + ((Math.max(0.45, rY + radiusM) * ppm) - (0.45 * ppm));
         const baseY = topY + 0.45 * ppm;
 
         const polyPoints = [];
@@ -850,7 +993,7 @@ TimeToLive	1.5 </textarea>
         ctx.strokeStyle = isBad ? 'rgba(255, 68, 68, 0.4)' : 'rgba(0, 163, 255, 0.35)';
         ctx.fill(); ctx.lineWidth = 1.5; ctx.stroke();
 
-        ctx.fillStyle = '#fff'; ctx.fillRect(cx - 15, baseY - 1, 30, 2); ctx.fillRect(cx - 1, baseY - 15, 2, 30);
+        ctx.fillStyle = '#fff'; ctx.fillRect(cx - 10, baseY - 0.5, 20, 1); ctx.fillRect(cx - 0.5, baseY - 10, 1, 20);
         
         if (vRecoil > 0) {
             if (hPxLeft > 0 || hPxRight > 0) {
@@ -864,14 +1007,7 @@ TimeToLive	1.5 </textarea>
             }
 
             ctx.beginPath(); ctx.moveTo(cx, baseY); ctx.lineTo(cx, cy);
-            ctx.strokeStyle = "rgba(0, 163, 255, 0.4)"; ctx.setLineDash([3, 3]); ctx.stroke(); ctx.setLineDash([]);
-            
-            ctx.beginPath();
-            ctx.moveTo(cx, cy);
-            ctx.lineTo(cx - 5, cy + 6);
-            ctx.lineTo(cx + 5, cy + 6);
-            ctx.fillStyle = "rgba(0, 163, 255, 0.6)";
-            ctx.fill();
+            ctx.strokeStyle = "rgba(0, 163, 255, 0.4)"; ctx.setLineDash([2, 2]); ctx.stroke(); ctx.setLineDash([]);
         }
 
         (isAnimating ? shots.slice(0, animationIndex + 1) : shots).forEach(s => {
@@ -879,12 +1015,12 @@ TimeToLive	1.5 </textarea>
             
             if (isAnimating && s.shotNumber === (animationIndex + 1)) {
                 ctx.beginPath(); ctx.arc(cx + (s.centerX * ppm), baseY - (s.centerY * ppm), s.radiusM * ppm, 0, 2 * Math.PI);
-                ctx.strokeStyle = 'rgba(0, 163, 255, 0.6)'; ctx.lineWidth = 1; ctx.stroke();
+                ctx.strokeStyle = 'rgba(0, 163, 255, 0.8)'; ctx.lineWidth = 1.5; ctx.stroke();
             }
 
             const isHit = pointInPolygon([bPxX, bPxY], polyPoints);
 
-            ctx.beginPath(); ctx.arc(bPxX, bPxY, 3, 0, 2 * Math.PI);
+            ctx.beginPath(); ctx.arc(bPxX, bPxY, 2.5, 0, 2 * Math.PI);
             
             if (s.shotNumber === 1) { 
                 ctx.fillStyle = isHit ? '#ff3333' : 'rgba(255, 51, 51, 0.4)';
