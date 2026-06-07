@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <title>BF4 Weapon Lab (Precision Edition 2.98)</title>
+    <title>BF4 Weapon Lab (Precision Edition 2.99)</title>
     <style>
         body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background-color: #0b0e14; color: #f0f4f8; margin: 0; padding: 20px; }
         .container { display: flex; flex-wrap: wrap; gap: 20px; max-width: 1400px; margin: auto; }
@@ -615,7 +615,6 @@ TimeToLive	1.5 </textarea>
                 $('burst').style.cursor = "pointer";
             }
             
-            // Initialen Seed-Satz beim Laden erstellen
             regenerateSeeds();
             calculate();
         } else {
@@ -648,7 +647,6 @@ TimeToLive	1.5 </textarea>
     });
 
     $('btnFire').addEventListener('click', () => {
-        // Schüsse neu auswürfeln bei Klick auf den Button
         regenerateSeeds();
         calculate();
 
@@ -674,32 +672,84 @@ TimeToLive	1.5 </textarea>
     });
 
     function calculateOptimalSweetspot() {
-        const DOStart = WEP.DOStart || 10;
-        const DOEnd = WEP.DOEnd || 50;
-        const SDmg = WEP.SDmg || 25;
+        const DOStart = WEP.DOStart || 12.5;
+        const DOEnd = WEP.DOEnd || 60;
+        const SDmg = WEP.SDmg || 24.5;
         const EDmg = WEP.EDmg || 18;
         
-        let optimalMin = DOStart, optimalMax = DOEnd;
+        const stance = $('stance').value;
+        const isMoving = $('isMoving').checked;
+        const barrel = $('barrel').value;
+        const grip = $('grip').value;
+        const burst = parseInt($('burst').value) || 1;
+
+        // 1. Exakten maximalen Spread (Streuung) für das aktuelle Setup am Ende des Bursts berechnen
+        let staticMin = WEP[`ADS${stance}BaseMin`] || WEP.ADSStandBaseMin || 0.2;
+        let movingMin = WEP[`ADS${stance}MoveMin`] || WEP.ADSStandMoveMin || 1.0;
+        let sips      = WEP[`ADS${stance}BaseSpreadInc`] || WEP.ADSStandBaseSpreadInc || 0.1;
+        let maxSpread = WEP[`ADS${stance}${isMoving ? 'Move' : 'Base'}Max`] || WEP[`ADSStand${isMoving ? 'Move' : 'Base'}Max`] || 1.7;
         
-        for (let d = 10; d <= DOEnd + 20; d++) {
-            let dmg = SDmg;
-            if (d > DOStart && d < DOEnd) dmg -= (SDmg - EDmg) * ((d - DOStart) / (DOEnd - DOStart));
-            else if (d >= DOEnd) dmg = EDmg;
-            
-            if (dmg >= 30) {
-                optimalMin = Math.min(optimalMin, d);
-                optimalMax = Math.max(optimalMax, d);
-                break;
-            }
+        const origStaticMin = staticMin, origMovingMin = movingMin, origSips = sips;
+        
+        if (barrel === 'hb') { staticMin *= 0.5; movingMin *= 0.85; sips *= 0.925; }
+        else if (barrel === 'mb') { sips *= 1.125; }
+        else if (barrel === 'comp') { sips *= 1.3; }
+
+        if (grip === 'stubby') { sips *= 0.8; maxSpread *= 0.83; }
+        else if (grip === 'ergo') { movingMin = staticMin + (movingMin - staticMin) * 0.5; }
+        else if (grip === 'bipod') { staticMin *= 0.05; movingMin *= 0.05; sips *= 0.1; maxSpread *= 0.165; }
+
+        if (currentWeaponClass === 4) { // Sniper-Ausnahme
+            sips = origSips; maxSpread = WEP[`ADS${stance}${isMoving ? 'Move' : 'Base'}Max`] || 1.7;
+            if (barrel === 'hb') { staticMin = origStaticMin; movingMin = origMovingMin; }
         }
+
+        let baseSpread = isMoving ? movingMin : staticMin;
+        let fssm = WEP.FirstShotSpreadMultiplier || WEP.FirstShotSpreadMul || 1.0;
+
+        let finalSpread = baseSpread;
+        for (let i = 1; i < burst; i++) finalSpread += (i === 1) ? (sips * fssm) : sips;
+        finalSpread = Math.min(finalSpread, maxSpread);
+
+        // 2. Präzisionslimit via Trigonometrie bestimmen (Wann bricht der Streukegel aus der Silhouette aus?)
+        let allowedTargetRadius = 0.25; // 25cm (Halbe Torso-Breite für Sturmgewehre)
         
-        return { optimalMin, optimalMax };
+        if (currentWeaponClass === 2) { 
+            allowedTargetRadius = 0.35; // PDWs (Erlaubt mehr Streuung im Nahkampf)
+        } else if (currentWeaponClass === 6) { 
+            allowedTargetRadius = 0.18; // DMRs (Strengere Anforderung)
+        } else if (currentWeaponClass === 4) { 
+            allowedTargetRadius = 0.10; // Sniper (Höchste Anforderung: Exakter Kopfschuss-Radius)
+        }
+
+        let accuracyMaxRange = allowedTargetRadius / Math.tan(finalSpread * DEG2RAD);
+
+        // 3. Taktisches Distanz-Limit basierend auf dem Schadensabfall & Waffenklasse
+        let damageMaxRange = DOEnd;
+        
+        if (currentWeaponClass === 1 || currentWeaponClass === 5) { 
+            damageMaxRange = DOStart + (DOEnd - DOStart) * 0.5; 
+        } else if (currentWeaponClass === 2) { 
+            damageMaxRange = DOStart + 5; 
+        } else if (currentWeaponClass === 3) { 
+            damageMaxRange = DOEnd; 
+        } else if (currentWeaponClass === 6) { 
+            damageMaxRange = DOEnd; 
+        } else if (currentWeaponClass === 4) { 
+            damageMaxRange = 150; 
+        }
+
+        let finalSweetspot = Math.min(accuracyMaxRange, damageMaxRange);
+
+        if (finalSweetspot < 10) finalSweetspot = 10;
+        if (finalSweetspot > 250) finalSweetspot = 250;
+
+        return { optimalMin: 0, optimalMax: Math.round(finalSweetspot) };
     }
 
     function updateCanvasStats(shots) {
         let hits = 0, misses = 0;
         const polyPoints = [];
-        const cvs = $('targetCanvas');
         
         const dist = lastCalcParams.dist;
         const radiusM = lastCalcParams.radiusM;
@@ -840,7 +890,6 @@ TimeToLive	1.5 </textarea>
         let shots = [], curSpread = baseMinSpread, curRecoilX = 0, curRecoilY = 0;
 
         for (let i = 1; i <= burst; i++) {
-            // Falls temporär mehr Seeds gebraucht werden als da sind, dynamisch auffüllen
             if (!shotSeeds[i - 1]) {
                 shotSeeds[i - 1] = {
                     theta: Math.random() * 2 * Math.PI,
@@ -881,7 +930,6 @@ TimeToLive	1.5 </textarea>
             $('pacingVal').innerHTML = `<span class="stat-value" style="color:#00C851">Instant</span><br><span style="font-size:12px; color:#7f8fa4;">Spread Reset Time</span>`;
         }
 
-        // Neues Ampelsystem für Optimal Sweetspot Range (0 bis X)
         const sweetspot = calculateOptimalSweetspot();
         const sweetspotBox = $('sweetspotBox');
         const maxRange = Math.round(sweetspot.optimalMax);
