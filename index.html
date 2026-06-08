@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <title>BF4 Weapon Lab (Precision Edition 2.99)</title>
+    <title>BF4 Weapon Lab (Precision Edition 3.10)</title>
     <style>
         body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background-color: #0b0e14; color: #f0f4f8; margin: 0; padding: 20px; }
         .container { display: flex; flex-wrap: wrap; gap: 20px; max-width: 1400px; margin: auto; }
@@ -683,7 +683,6 @@ TimeToLive	1.5 </textarea>
         const grip = $('grip').value;
         const burst = parseInt($('burst').value) || 1;
 
-        // 1. Exakten maximalen Spread (Streuung) für das aktuelle Setup am Ende des Bursts berechnen
         let staticMin = WEP[`ADS${stance}BaseMin`] || WEP.ADSStandBaseMin || 0.2;
         let movingMin = WEP[`ADS${stance}MoveMin`] || WEP.ADSStandMoveMin || 1.0;
         let sips      = WEP[`ADS${stance}BaseSpreadInc`] || WEP.ADSStandBaseSpreadInc || 0.1;
@@ -699,7 +698,7 @@ TimeToLive	1.5 </textarea>
         else if (grip === 'ergo') { movingMin = staticMin + (movingMin - staticMin) * 0.5; }
         else if (grip === 'bipod') { staticMin *= 0.05; movingMin *= 0.05; sips *= 0.1; maxSpread *= 0.165; }
 
-        if (currentWeaponClass === 4) { // Sniper-Ausnahme
+        if (currentWeaponClass === 4) { 
             sips = origSips; maxSpread = WEP[`ADS${stance}${isMoving ? 'Move' : 'Base'}Max`] || 1.7;
             if (barrel === 'hb') { staticMin = origStaticMin; movingMin = origMovingMin; }
         }
@@ -711,20 +710,18 @@ TimeToLive	1.5 </textarea>
         for (let i = 1; i < burst; i++) finalSpread += (i === 1) ? (sips * fssm) : sips;
         finalSpread = Math.min(finalSpread, maxSpread);
 
-        // 2. Präzisionslimit via Trigonometrie bestimmen (Wann bricht der Streukegel aus der Silhouette aus?)
-        let allowedTargetRadius = 0.25; // 25cm (Halbe Torso-Breite für Sturmgewehre)
+        let allowedTargetRadius = 0.25; 
         
         if (currentWeaponClass === 2) { 
-            allowedTargetRadius = 0.35; // PDWs (Erlaubt mehr Streuung im Nahkampf)
+            allowedTargetRadius = 0.35; 
         } else if (currentWeaponClass === 6) { 
-            allowedTargetRadius = 0.18; // DMRs (Strengere Anforderung)
+            allowedTargetRadius = 0.18; 
         } else if (currentWeaponClass === 4) { 
-            allowedTargetRadius = 0.10; // Sniper (Höchste Anforderung: Exakter Kopfschuss-Radius)
+            allowedTargetRadius = 0.10; 
         }
 
         let accuracyMaxRange = allowedTargetRadius / Math.tan(finalSpread * DEG2RAD);
 
-        // 3. Taktisches Distanz-Limit basierend auf dem Schadensabfall & Waffenklasse
         let damageMaxRange = DOEnd;
         
         if (currentWeaponClass === 1 || currentWeaponClass === 5) { 
@@ -857,7 +854,7 @@ TimeToLive	1.5 </textarea>
         else if (grip === 'bipod') { staticMin *= 0.05; movingMin *= 0.05; sips *= 0.1; maxSpread *= 0.165; recoilUp *= 0.1; recLeft *= 0.25; recRight *= 0.25; fsrm *= 0.15; }
 
         if (currentWeaponClass === 4 && (grip === 'stubby' || grip === 'angled' || grip === 'ergo')) {
-            sips = origSips;
+            sips = origSip;
             maxSpread = WEP[`ADS${stance}${isMoving ? 'Move' : 'Base'}Max`] || WEP[`ADSStand${isMoving ? 'Move' : 'Base'}Max`] || 1.7;
             sdec = WEP[`ADS${stance}BaseSpreadDec`] || WEP.ADSStandBaseSpreadDec || 15;
             fsrm = WEP.FirstShotRecoilMul || 2.0;
@@ -942,45 +939,125 @@ TimeToLive	1.5 </textarea>
             $('sweetspotVal').innerHTML = `<span class="stat-value" style="color:#ff4444">0-${maxRange} m</span><br><span style="font-size:12px; color:#7f8fa4;">Too Far</span>`;
         }
 
-        let bestBarrel = "Flash Hider / None", bestGrip = "Stubby Grip", recReason = "";
-        const baseRecUp = WEP.ADSRecoilUp || 0.3, baseHRec = (WEP.ADSRecoilLeft || 0.1) + (WEP.ADSRecoilRight || 0.1), fShotM = WEP.FirstShotRecoilMul || 2.0;
+        // --- START MATHEMATICAL LOADOUT OPTIMIZATION LOOP ---
+        let bestBarrelId = "none", bestGripId = "none";
+        let bestScore = -Infinity;
+        let bestMetrics = {};
 
-        if (currentWeaponClass === 6) {
-            if (dist >= 60) {
-                bestGrip = "Angled Grip (20% FSRM reduction)";
-                bestBarrel = "Compensator (H. Recoil -25%)";
-                recReason = "DMRs at extended range need horizontal stability. Compensator handles left-right drift, Angled Grip reduces the initial kick.";
-            } else {
-                bestGrip = "Angled Grip";
-                bestBarrel = "Muzzle Brake";
-                recReason = "Close-range DMR play. Angled Grip minimizes the first-shot vertical kick, Muzzle Brake reduces overall vertical recoil.";
-            }
-        } else if (currentWeaponClass === 4) {
-            bestGrip = "Bipod (Only Option)";
-            bestBarrel = dist >= 80 ? "None" : "Muzzle Brake";
-            recReason = "Snipers ignore underbarrel grips. Bipod is mandatory. Muzzle Brake helps with follow-up recoil.";
-        } else if (dist >= 90) {
-            bestGrip = "Bipod"; bestBarrel = "Heavy Barrel";
-            recReason = "Extreme long-range distance! The Bipod completely eliminates spread and recoil penalties, while the Heavy Barrel minimizes base spread.";
-        } else if (isMoving) {
-            bestGrip = "Ergo Grip"; bestBarrel = dist >= 40 ? "Heavy Barrel" : "Flash Hider";
-            recReason = `Since you are moving, the Ergo Grip is essential (-50% move penalty). ${dist >= 40 ? "Beyond 40m, the Heavy Barrel mitigates the remaining spread." : "A Flash Hider avoids negative stat penalties."}`;
-        } else {
-            if (burst >= 5) { bestGrip = "Stubby Grip"; recReason = "Long continuous bursts require the Stubby Grip to mitigate uncontrolled spread increase per shot (SIPS)."; }
-            else if (burst >= 2 && fShotM >= 1.8) { bestGrip = "Angled Grip"; recReason = "Short precision bursts. Since your weapon has a heavy first-shot kick, the Angled Grip is ideal to absorb it."; }
-            else { bestGrip = "Stubby Grip"; recReason = "Standard all-around precision. The Stubby Grip ensures your follow-up shots in the burst remain tightly grouped."; }
+        const isSniper = currentWeaponClass === 4;
+        const validBarrels = isSniper ? ['none', 'fh', 'mb', 'sup'] : ['none', 'fh', 'hb', 'mb', 'comp', 'sup'];
+        const validGrips = isSniper ? ['none', 'bipod'] : ['none', 'stubby', 'angled', 'ergo', 'bipod'];
 
-            if (dist >= 45) {
-                if (baseRecUp > 0.38) { bestBarrel = "Flash Hider"; recReason += " At this distance, a Heavy Barrel makes the vertical recoil too difficult to control, so the Flash Hider is safer."; }
-                else { bestBarrel = "Heavy Barrel"; recReason += " Beyond 45m, the Heavy Barrel's reduced base spread ensures more reliable hits on target."; }
-            } else {
-                if (baseHRec > 0.6) { bestBarrel = "Compensator"; recReason += " In close quarters, your weapon pulls heavily to the sides. The Compensator stabilizes this horizontal drift."; }
-                else if (baseRecUp > 0.38) { bestBarrel = "Muzzle Brake"; recReason += " High vertical kick at close range. The Muzzle Brake makes recoil compensation much easier in CQC."; }
-                else { bestBarrel = "Flash Hider / None"; recReason += " In close quarters, a Flash Hider is sufficient and avoids any negative stat penalties."; }
+        for (let bId of validBarrels) {
+            for (let gId of validGrips) {
+                
+                // Realism Check: Only evaluate Bipod if engagement distance justifies mechanical deployment
+                if (gId === 'bipod') {
+                    let minBipodDist = (currentWeaponClass === 3 || currentWeaponClass === 4 || currentWeaponClass === 6) ? 45 : 65;
+                    if (dist < minBipodDist) continue;
+                }
+
+                let candidateMoving = (gId === 'bipod') ? false : isMoving;
+
+                let sMin = WEP[`ADS${stance}BaseMin`] || WEP.ADSStandBaseMin || 0.2;
+                let mMin = WEP[`ADS${stance}MoveMin`] || WEP.ADSStandMoveMin || 1.0;
+                let sip  = WEP[`ADS${stance}BaseSpreadInc`] || WEP.ADSStandBaseSpreadInc || 0.1;
+                let mSpread = WEP[`ADS${stance}${candidateMoving ? 'Move' : 'Base'}Max`] || WEP[`ADSStand${candidateMoving ? 'Move' : 'Base'}Max`] || 1.7;
+                let sdc  = WEP[`ADS${stance}BaseSpreadDec`] || WEP.ADSStandBaseSpreadDec || 15;
+
+                let recUp = (WEP.ADSRecoilUp || 0.3) * 0.95;
+                let rL = WEP.ADSRecoilLeft || 0.1;
+                let rR = WEP.ADSRecoilRight || 0.1;
+                let fsm = WEP.FirstShotRecoilMul || 2.0;
+
+                const oSMin = sMin, oMMin = mMin, oSip = sip, oMSpread = mSpread, oSdc = sdc, oFsm = fsm;
+
+                // Apply barrel modifiers
+                if (bId === 'hb') { sMin *= 0.5; mMin *= 0.85; sip *= 0.925; recUp *= 1.3; }
+                else if (bId === 'mb') { sip *= 1.125; recUp *= 0.9; }
+                else if (bId === 'comp') { sip *= 1.3; rL *= 0.75; rR *= 0.75; }
+                else if (bId === 'fh') { sdc *= 0.87; }
+
+                // Apply grip modifiers
+                if (gId === 'stubby') { sip *= 0.8; mSpread *= 0.83; sdc *= 0.67; }
+                else if (gId === 'angled') { fsm *= 0.8; sdc *= 0.67; }
+                else if (gId === 'ergo') { sdc *= 0.67; mMin = sMin + (mMin - sMin) * 0.5; }
+                else if (gId === 'bipod') { sMin *= 0.05; mMin *= 0.05; sip *= 0.1; mSpread *= 0.165; recUp *= 0.1; rL *= 0.25; rR *= 0.25; fsm *= 0.15; }
+
+                // Sniper rule fixes
+                if (isSniper) {
+                    if (gId === 'stubby' || gId === 'angled' || gId === 'ergo') {
+                        sip = oSip; mSpread = oMSpread; sdc = oSdc; fsm = oFsm;
+                    }
+                    if (bId === 'hb') { sMin = oSMin; mMin = oMMin; sip = oSip; }
+                }
+
+                let bSpread = candidateMoving ? mMin : sMin;
+                let fssm = WEP.FirstShotSpreadMultiplier || WEP.FirstShotSpreadMul || 1.0;
+
+                let totalSpreadAngle = 0;
+                let curS = bSpread;
+                for (let i = 1; i <= burst; i++) {
+                    totalSpreadAngle += curS;
+                    curS = Math.min(curS + ((i === 1) ? (sip * fssm) : sip), mSpread);
+                }
+                let avgSpread = totalSpreadAngle / burst;
+                let finalSpread = curS;
+
+                let avgRadiusM = dist * Math.tan(avgSpread * DEG2RAD);
+                let vRecoilTotal = (burst > 1) ? ((recUp * fsm) + (recUp * Math.max(0, burst - 2))) : recUp;
+                let hRecoilWindow = (rL + rR) * (burst - 1);
+
+                let candidateResetMs = finalSpread > bSpread ? shotDelayMs + (((finalSpread - bSpread) / sdc) * 1000) : 0;
+                let pacingPenalty = Math.max(0, candidateResetMs - shotDelayMs);
+
+                // --- UPGRADED PRECISION-FIRST SCORING FORMULA ---
+                // Spread penalty scales quadratically. As the bullet cone grows too large for the silhouette, score tanks drastically.
+                let score = 500 / (1.0 + (avgRadiusM * avgRadiusM * 2.5)); 
+                score -= hRecoilWindow * 12;          // Reduced recoil penalty so it doesn't override absolute mechanical accuracy
+                score -= vRecoilTotal * 1.5;         // Vertical kick is highly manageable; lowered its algorithmic profile
+                score -= pacingPenalty * 0.1;
+                if (candidateMoving) score -= bSpread * 40; // Heavy penalty for poor entry spread while moving
+
+                if (bId === 'sup') score -= 5;        // Minor penalty adjustment for suppressor bullet drop
+
+                if (score > bestScore) {
+                    bestScore = score;
+                    bestBarrelId = bId;
+                    bestGripId = gId;
+                    bestMetrics = { avgRadiusM, vRecoilTotal, hRecoilWindow, pacingPenalty, bSpread };
+                }
             }
         }
 
+        const bestBarrel = { none: "None", fh: "Flash Hider", hb: "Heavy Barrel", mb: "Muzzle Brake", comp: "Compensator", sup: "Suppressor" }[bestBarrelId];
+        const bestGrip = { none: "None", stubby: "Stubby Grip", angled: "Angled Grip", ergo: "Ergo Grip", bipod: "Bipod Deployed" }[bestGripId];
+
+        let recReason = "";
+        if (bestGripId === 'bipod') {
+            recReason = "Long range threshold passed. The optimization engine deploys the Bipod to completely flatten out base spread and recoil variables, securing maximum static precision.";
+        } else if (isMoving && bestGripId === 'ergo') {
+            recReason = `Movement active! The Ergo Grip wins mathematically by compressing entry moving spread down to ${bestMetrics.bSpread.toFixed(2)}°, vastly outperforming the Stubby's SIPS savings.`;
+        } else if (bestGripId === 'stubby' && bestMetrics.pacingPenalty > 10) {
+            recReason = `Extended continuous firing of ${burst} rounds scales accuracy decay. The Stubby's 20% SIPS mitigation is mathematically chosen to protect grouping density despite a +${Math.round(bestMetrics.pacingPenalty)}ms pacing threshold.`;
+        } else if (bestGripId === 'angled' && burst >= 2) {
+            recReason = `Short precision burst profile achieves a clean accuracy reset natively. The algorithm skips the Stubby to focus on neutralizing the initial vertical snap with an Angled Grip.`;
+        } else {
+            recReason = "This specific attachment setup yields the absolute highest statistical hit probability by minimizing the exact mathematical product of cone drift and weapon weave.";
+        }
+
+        if (bestBarrelId === 'hb') {
+            recReason += ` Combined with a Heavy Barrel to slice your entry spread angle by 50% for flawless groupings at ${dist}m.`;
+        } else if (bestBarrelId === 'comp') {
+            recReason += ` Complemented by a Compensator to narrow down random side-to-side drift to a tight ${bestMetrics.hRecoilWindow.toFixed(2)}° window.`;
+        } else if (bestBarrelId === 'mb') {
+            recReason += ` Assisted by a Muzzle Brake to drastically absorb a heavy vertical kick profile (+${bestMetrics.vRecoilTotal.toFixed(2)}° cumulative).`;
+        } else if (bestBarrelId === 'fh') {
+            recReason += " Anchored with a Flash Hider to keep full spread reset velocity optimal while removing optical muzzle signature.";
+        }
+
         $('loadoutRecValue').innerHTML = `<b>Barrel:</b> <span style="color:#00a3ff">${bestBarrel}</span><br><b>Underbarrel:</b> <span style="color:#00a3ff">${bestGrip}</span><i>${recReason}</i>`;
+        // --- END MATHEMATICAL LOADOUT OPTIMIZATION LOOP ---
 
         const canKill = burst >= shotsToKill;
         $('curDmg').innerHTML = `<span style="color:${canKill ? '#00C851' : '#ff4444'};">${dmg.toFixed(1)} HP</span><br><span class="stat-label">(${shotsToKill} to Kill)</span>`;
