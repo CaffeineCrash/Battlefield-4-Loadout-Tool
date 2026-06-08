@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <title>BF4 Weapon Lab (Precision Edition 3.10)</title>
+    <title>BF4 Weapon Lab (Precision Edition 3.15)</title>
     <style>
         body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background-color: #0b0e14; color: #f0f4f8; margin: 0; padding: 20px; }
         .container { display: flex; flex-wrap: wrap; gap: 20px; max-width: 1400px; margin: auto; }
@@ -446,11 +446,11 @@ TimeToLive	1.5 </textarea>
                 <span class="stat-label">Max Cone Spread Limit</span>
                 <span class="stat-value" id="maxSpreadVal">-</span>
             </div>
-            <div class="stat-box">
+            <div class="stat-box" id="dropBox">
                 <span class="stat-label">Bullet Drop</span>
                 <span class="stat-value" id="dropVal">-</span>
             </div>
-            <div class="stat-box">
+            <div class="stat-box" id="leadBox">
                 <span class="stat-label">Lead Distance (Sprinting Target)</span>
                 <span class="stat-value" id="leadVal">-</span>
             </div>
@@ -580,6 +580,12 @@ TimeToLive	1.5 </textarea>
             status.innerText = `Successfully parsed! (${parsedCount} ADS variables detected)`;
             if (WEP.MagSize) $('burst').max = WEP.MagSize;
 
+            if (currentWeaponClass === 4 && WEP.MaxDistance) {
+                $('distance').max = WEP.MaxDistance;
+            } else {
+                $('distance').max = 200; 
+            }
+
             const bSize = getBurstConfig();
             const hasBRoF = WEP.BRoF && WEP.BRoF !== WEP.RoF;
             const isDMROrSniper = currentWeaponClass === 6 || currentWeaponClass === 4;
@@ -683,10 +689,10 @@ TimeToLive	1.5 </textarea>
         const grip = $('grip').value;
         const burst = parseInt($('burst').value) || 1;
 
-        let staticMin = WEP[`ADS${stance}BaseMin`] || WEP.ADSStandBaseMin || 0.2;
-        let movingMin = WEP[`ADS${stance}MoveMin`] || WEP.ADSStandMoveMin || 1.0;
-        let sips      = WEP[`ADS${stance}BaseSpreadInc`] || WEP.ADSStandBaseSpreadInc || 0.1;
-        let maxSpread = WEP[`ADS${stance}${isMoving ? 'Move' : 'Base'}Max`] || WEP[`ADSStand${isMoving ? 'Move' : 'Base'}Max`] || 1.7;
+        let staticMin = WEP[`ADS${stance}BaseMin`] ?? WEP.ADSStandBaseMin ?? 0.2;
+        let movingMin = WEP[`ADS${stance}MoveMin`] ?? WEP.ADSStandMoveMin ?? 1.0;
+        let sips      = WEP[`ADS${stance}BaseSpreadInc`] ?? WEP.ADSStandBaseSpreadInc ?? 0.1;
+        let maxSpread = WEP[`ADS${stance}${isMoving ? 'Move' : 'Base'}Max`] ?? WEP[`ADSStand${isMoving ? 'Move' : 'Base'}Max`] ?? 1.7;
         
         const origStaticMin = staticMin, origMovingMin = movingMin, origSips = sips;
         
@@ -699,12 +705,12 @@ TimeToLive	1.5 </textarea>
         else if (grip === 'bipod') { staticMin *= 0.05; movingMin *= 0.05; sips *= 0.1; maxSpread *= 0.165; }
 
         if (currentWeaponClass === 4) { 
-            sips = origSips; maxSpread = WEP[`ADS${stance}${isMoving ? 'Move' : 'Base'}Max`] || 1.7;
+            sips = origSips; maxSpread = WEP[`ADS${stance}${isMoving ? 'Move' : 'Base'}Max`] ?? 1.7;
             if (barrel === 'hb') { staticMin = origStaticMin; movingMin = origMovingMin; }
         }
 
         let baseSpread = isMoving ? movingMin : staticMin;
-        let fssm = WEP.FirstShotSpreadMultiplier || WEP.FirstShotSpreadMul || 1.0;
+        let fssm = WEP.FirstShotSpreadMultiplier ?? WEP.FirstShotSpreadMul ?? 1.0;
 
         let finalSpread = baseSpread;
         for (let i = 1; i < burst; i++) finalSpread += (i === 1) ? (sips * fssm) : sips;
@@ -733,13 +739,15 @@ TimeToLive	1.5 </textarea>
         } else if (currentWeaponClass === 6) { 
             damageMaxRange = DOEnd; 
         } else if (currentWeaponClass === 4) { 
-            damageMaxRange = 150; 
+            damageMaxRange = WEP.MaxDistance || 150; 
         }
 
         let finalSweetspot = Math.min(accuracyMaxRange, damageMaxRange);
 
         if (finalSweetspot < 10) finalSweetspot = 10;
-        if (finalSweetspot > 250) finalSweetspot = 250;
+        
+        let maxAllowedRange = (currentWeaponClass === 4) ? (WEP.MaxDistance || 930) : 250;
+        if (finalSweetspot > maxAllowedRange) finalSweetspot = maxAllowedRange;
 
         return { optimalMin: 0, optimalMax: Math.round(finalSweetspot) };
     }
@@ -779,7 +787,7 @@ TimeToLive	1.5 </textarea>
         $('statsMisses').innerText = misses;
         $('statsAccuracy').innerText = `${accuracy}%`;
         $('statsDist').innerText = `${dist}m`;
-        $('statsSpread').innerText = `${radiusM.toFixed(2)}m`;
+        $('statsSpread').innerText = `${radiusM.toFixed(4)}m`;
         $('statsVRecoil').innerText = `${vRecoil.toFixed(2)}°`;
     }
 
@@ -833,13 +841,13 @@ TimeToLive	1.5 </textarea>
         const flightTime = dist / (WEP.InitialSpeed || 600);
         const totalTTKMs = (((shotsToKill - 1) * (60 / activeRoF)) + flightTime) * 1000;
 
-        let staticMin = WEP[`ADS${stance}BaseMin`] || WEP.ADSStandBaseMin || 0.2;
-        let movingMin = WEP[`ADS${stance}MoveMin`] || WEP.ADSStandMoveMin || 1.0;
-        let sips      = WEP[`ADS${stance}BaseSpreadInc`] || WEP.ADSStandBaseSpreadInc || 0.1;
-        let maxSpread = WEP[`ADS${stance}${isMoving ? 'Move' : 'Base'}Max`] || WEP[`ADSStand${isMoving ? 'Move' : 'Base'}Max`] || 1.7;
-        let sdec      = WEP[`ADS${stance}BaseSpreadDec`] || WEP.ADSStandBaseSpreadDec || 15;
+        let staticMin = WEP[`ADS${stance}BaseMin`] ?? WEP.ADSStandBaseMin ?? 0.2;
+        let movingMin = WEP[`ADS${stance}MoveMin`] ?? WEP.ADSStandMoveMin ?? 1.0;
+        let sips      = WEP[`ADS${stance}BaseSpreadInc`] ?? WEP.ADSStandBaseSpreadInc ?? 0.1;
+        let maxSpread = WEP[`ADS${stance}${isMoving ? 'Move' : 'Base'}Max`] ?? WEP[`ADSStand${isMoving ? 'Move' : 'Base'}Max`] ?? 1.7;
+        let sdec      = WEP[`ADS${stance}BaseSpreadDec`] ?? WEP.ADSStandBaseSpreadDec ?? 15;
 
-        let recoilUp  = (WEP.ADSRecoilUp || 0.3) * 0.95, recLeft = WEP.ADSRecoilLeft || 0.1, recRight = WEP.ADSRecoilRight || 0.1, fsrm = WEP.FirstShotRecoilMul || 2.0;
+        let recoilUp  = (WEP.ADSRecoilUp ?? 0.3) * 0.95, recLeft = WEP.ADSRecoilLeft ?? 0.1, recRight = WEP.ADSRecoilRight ?? 0.1, fsrm = WEP.FirstShotRecoilMul ?? 2.0;
         
         const origStaticMin = staticMin, origMovingMin = movingMin, origSips = sips;
         
@@ -854,10 +862,10 @@ TimeToLive	1.5 </textarea>
         else if (grip === 'bipod') { staticMin *= 0.05; movingMin *= 0.05; sips *= 0.1; maxSpread *= 0.165; recoilUp *= 0.1; recLeft *= 0.25; recRight *= 0.25; fsrm *= 0.15; }
 
         if (currentWeaponClass === 4 && (grip === 'stubby' || grip === 'angled' || grip === 'ergo')) {
-            sips = origSip;
-            maxSpread = WEP[`ADS${stance}${isMoving ? 'Move' : 'Base'}Max`] || WEP[`ADSStand${isMoving ? 'Move' : 'Base'}Max`] || 1.7;
-            sdec = WEP[`ADS${stance}BaseSpreadDec`] || WEP.ADSStandBaseSpreadDec || 15;
-            fsrm = WEP.FirstShotRecoilMul || 2.0;
+            sips = origSips;
+            maxSpread = WEP[`ADS${stance}${isMoving ? 'Move' : 'Base'}Max`] ?? WEP[`ADSStand${isMoving ? 'Move' : 'Base'}Max`] ?? 1.7;
+            sdec = WEP[`ADS${stance}BaseSpreadDec`] ?? WEP.ADSStandBaseSpreadDec ?? 15;
+            fsrm = WEP.FirstShotRecoilMul ?? 2.0;
         }
         if (currentWeaponClass === 4 && barrel === 'hb') {
             staticMin = origStaticMin;
@@ -866,7 +874,7 @@ TimeToLive	1.5 </textarea>
         }
 
         let baseMinSpread = isMoving ? movingMin : staticMin;
-        let fssm = WEP.FirstShotSpreadMultiplier || WEP.FirstShotSpreadMul || 1.0;
+        let fssm = WEP.FirstShotSpreadMultiplier ?? WEP.FirstShotSpreadMul ?? 1.0;
 
         let simSpread = baseMinSpread;
         for (let i = 1; i < burst; i++) simSpread += (i === 1) ? (sips * fssm) : sips;
@@ -939,7 +947,7 @@ TimeToLive	1.5 </textarea>
             $('sweetspotVal').innerHTML = `<span class="stat-value" style="color:#ff4444">0-${maxRange} m</span><br><span style="font-size:12px; color:#7f8fa4;">Too Far</span>`;
         }
 
-        // --- START MATHEMATICAL LOADOUT OPTIMIZATION LOOP ---
+        // --- MATHEMATICAL LOADOUT OPTIMIZATION LOOP ---
         let bestBarrelId = "none", bestGripId = "none";
         let bestScore = -Infinity;
         let bestMetrics = {};
@@ -951,7 +959,6 @@ TimeToLive	1.5 </textarea>
         for (let bId of validBarrels) {
             for (let gId of validGrips) {
                 
-                // Realism Check: Only evaluate Bipod if engagement distance justifies mechanical deployment
                 if (gId === 'bipod') {
                     let minBipodDist = (currentWeaponClass === 3 || currentWeaponClass === 4 || currentWeaponClass === 6) ? 45 : 65;
                     if (dist < minBipodDist) continue;
@@ -959,32 +966,29 @@ TimeToLive	1.5 </textarea>
 
                 let candidateMoving = (gId === 'bipod') ? false : isMoving;
 
-                let sMin = WEP[`ADS${stance}BaseMin`] || WEP.ADSStandBaseMin || 0.2;
-                let mMin = WEP[`ADS${stance}MoveMin`] || WEP.ADSStandMoveMin || 1.0;
-                let sip  = WEP[`ADS${stance}BaseSpreadInc`] || WEP.ADSStandBaseSpreadInc || 0.1;
-                let mSpread = WEP[`ADS${stance}${candidateMoving ? 'Move' : 'Base'}Max`] || WEP[`ADSStand${candidateMoving ? 'Move' : 'Base'}Max`] || 1.7;
-                let sdc  = WEP[`ADS${stance}BaseSpreadDec`] || WEP.ADSStandBaseSpreadDec || 15;
+                let sMin = WEP[`ADS${stance}BaseMin`] ?? WEP.ADSStandBaseMin ?? 0.2;
+                let mMin = WEP[`ADS${stance}MoveMin`] ?? WEP.ADSStandMoveMin ?? 1.0;
+                let sip  = WEP[`ADS${stance}BaseSpreadInc`] ?? WEP.ADSStandBaseSpreadInc ?? 0.1;
+                let mSpread = WEP[`ADS${stance}${candidateMoving ? 'Move' : 'Base'}Max`] ?? WEP[`ADSStand${candidateMoving ? 'Move' : 'Base'}Max`] ?? 1.7;
+                let sdc  = WEP[`ADS${stance}BaseSpreadDec`] ?? WEP.ADSStandBaseSpreadDec ?? 15;
 
-                let recUp = (WEP.ADSRecoilUp || 0.3) * 0.95;
-                let rL = WEP.ADSRecoilLeft || 0.1;
-                let rR = WEP.ADSRecoilRight || 0.1;
-                let fsm = WEP.FirstShotRecoilMul || 2.0;
+                let recUp = (WEP.ADSRecoilUp ?? 0.3) * 0.95;
+                let rL = WEP.ADSRecoilLeft ?? 0.1;
+                let rR = WEP.ADSRecoilRight ?? 0.1;
+                let fsm = WEP.FirstShotRecoilMul ?? 2.0;
 
                 const oSMin = sMin, oMMin = mMin, oSip = sip, oMSpread = mSpread, oSdc = sdc, oFsm = fsm;
 
-                // Apply barrel modifiers
                 if (bId === 'hb') { sMin *= 0.5; mMin *= 0.85; sip *= 0.925; recUp *= 1.3; }
                 else if (bId === 'mb') { sip *= 1.125; recUp *= 0.9; }
                 else if (bId === 'comp') { sip *= 1.3; rL *= 0.75; rR *= 0.75; }
                 else if (bId === 'fh') { sdc *= 0.87; }
 
-                // Apply grip modifiers
                 if (gId === 'stubby') { sip *= 0.8; mSpread *= 0.83; sdc *= 0.67; }
                 else if (gId === 'angled') { fsm *= 0.8; sdc *= 0.67; }
                 else if (gId === 'ergo') { sdc *= 0.67; mMin = sMin + (mMin - sMin) * 0.5; }
                 else if (gId === 'bipod') { sMin *= 0.05; mMin *= 0.05; sip *= 0.1; mSpread *= 0.165; recUp *= 0.1; rL *= 0.25; rR *= 0.25; fsm *= 0.15; }
 
-                // Sniper rule fixes
                 if (isSniper) {
                     if (gId === 'stubby' || gId === 'angled' || gId === 'ergo') {
                         sip = oSip; mSpread = oMSpread; sdc = oSdc; fsm = oFsm;
@@ -993,7 +997,7 @@ TimeToLive	1.5 </textarea>
                 }
 
                 let bSpread = candidateMoving ? mMin : sMin;
-                let fssm = WEP.FirstShotSpreadMultiplier || WEP.FirstShotSpreadMul || 1.0;
+                let fssm = WEP.FirstShotSpreadMultiplier ?? WEP.FirstShotSpreadMul ?? 1.0;
 
                 let totalSpreadAngle = 0;
                 let curS = bSpread;
@@ -1011,15 +1015,13 @@ TimeToLive	1.5 </textarea>
                 let candidateResetMs = finalSpread > bSpread ? shotDelayMs + (((finalSpread - bSpread) / sdc) * 1000) : 0;
                 let pacingPenalty = Math.max(0, candidateResetMs - shotDelayMs);
 
-                // --- UPGRADED PRECISION-FIRST SCORING FORMULA ---
-                // Spread penalty scales quadratically. As the bullet cone grows too large for the silhouette, score tanks drastically.
                 let score = 500 / (1.0 + (avgRadiusM * avgRadiusM * 2.5)); 
-                score -= hRecoilWindow * 12;          // Reduced recoil penalty so it doesn't override absolute mechanical accuracy
-                score -= vRecoilTotal * 1.5;         // Vertical kick is highly manageable; lowered its algorithmic profile
+                score -= hRecoilWindow * 12;          
+                score -= vRecoilTotal * 1.5;         
                 score -= pacingPenalty * 0.1;
-                if (candidateMoving) score -= bSpread * 40; // Heavy penalty for poor entry spread while moving
+                if (candidateMoving) score -= bSpread * 40; 
 
-                if (bId === 'sup') score -= 5;        // Minor penalty adjustment for suppressor bullet drop
+                if (bId === 'sup') score -= 5;        
 
                 if (score > bestScore) {
                     bestScore = score;
@@ -1057,7 +1059,6 @@ TimeToLive	1.5 </textarea>
         }
 
         $('loadoutRecValue').innerHTML = `<b>Barrel:</b> <span style="color:#00a3ff">${bestBarrel}</span><br><b>Underbarrel:</b> <span style="color:#00a3ff">${bestGrip}</span><i>${recReason}</i>`;
-        // --- END MATHEMATICAL LOADOUT OPTIMIZATION LOOP ---
 
         const canKill = burst >= shotsToKill;
         $('curDmg').innerHTML = `<span style="color:${canKill ? '#00C851' : '#ff4444'};">${dmg.toFixed(1)} HP</span><br><span class="stat-label">(${shotsToKill} to Kill)</span>`;
@@ -1071,8 +1072,35 @@ TimeToLive	1.5 </textarea>
         const horizWindow = (totalRecLeft + totalRecRight).toFixed(2);
         $('recoilVal').innerHTML = `Vert: +${(showRecoil ? recoilAtLastShotY : 0).toFixed(2)}°<br>Horiz Window: ${horizWindow}°<br><span style="color:#7f8fa4; font-size:11px;">(L ${(showRecoil ? totalRecLeft : 0).toFixed(2)}° / R ${(showRecoil ? totalRecRight : 0).toFixed(2)}°)</span>`;
         
-        $('dropVal').innerText = `${(0.5 * (WEP.BDrop || 15) * (flightTime * flightTime) * 100).toFixed(1)} cm`;
-        $('leadVal').innerText = `${(6.5 * flightTime).toFixed(2)} m`;
+        // --- DYNAMIC TRAFFIC LIGHT SYSTEM (BULLET DROP & LEAD DISTANCE) ---
+        const rawDropCm = 0.5 * (WEP.BDrop || 15) * (flightTime * flightTime) * 100;
+        const dropMeters = rawDropCm / 100;
+        const leadMeters = 6.5 * flightTime;
+
+        let dropClass = "good";
+        let dropRating = "Easy";
+        let leadClass = "good";
+        let leadRating = "Easy";
+
+        if (currentWeaponClass === 4) { // Sniper Thresholds
+            if (dropMeters > 4.0) { dropClass = "alert"; dropRating = "Extreme Holdover"; }
+            else if (dropMeters > 1.0) { dropClass = "info"; dropRating = "Moderate Mildot Adj."; }
+            
+            if (leadMeters > 4.0) { leadClass = "alert"; leadRating = "Excessive Lead"; }
+            else if (leadMeters > 1.5) { leadClass = "info"; leadRating = "Significant Lead"; }
+        } else { // Regular Weapon Thresholds
+            if (dropMeters > 1.0) { dropClass = "alert"; dropRating = "Unusable Range"; }
+            else if (dropMeters > 0.3) { dropClass = "info"; dropRating = "High Drop"; }
+            
+            if (leadMeters > 2.5) { leadClass = "alert"; leadRating = "Target Too Fast"; }
+            else if (leadMeters > 1.0) { leadClass = "info"; leadRating = "Hard Tracking"; }
+        }
+
+        $('dropVal').innerHTML = `${rawDropCm.toFixed(1)} cm<br><span style="font-size:12px; font-weight:normal; color:#7f8fa4;">(${dropRating})</span>`;
+        $('dropBox').className = `stat-box ${dropClass}`;
+
+        $('leadVal').innerHTML = `${leadMeters.toFixed(2)} m<br><span style="font-size:12px; font-weight:normal; color:#7f8fa4;">(${leadRating})</span>`;
+        $('leadBox').className = `stat-box ${leadClass}`;
 
         drawCanvas(lastCalcParams.dist, lastCalcParams.radiusM, lastCalcParams.vRecoil, lastCalcParams.hRecoilLeft, lastCalcParams.hRecoilRight, lastCalcParams.burst, lastCalcParams.stk, shots, false, 0);
         updateCanvasStats(shots);
