@@ -64,26 +64,6 @@
             border-radius: 4px;
         }
         
-        .canvas-stats {
-            font-size: 12px;
-            color: #7f8fa4;
-            line-height: 1.6;
-            min-width: 180px;
-        }
-        
-        .canvas-stats .stat-line { 
-            display: flex;
-            justify-content: space-between;
-            padding: 4px 0;
-            border-bottom: 1px solid #1e2635;
-        }
-        
-        .canvas-stats .stat-line:last-child { border-bottom: none; }
-        .canvas-stats .stat-label { color: #7f8fa4; }
-        .canvas-stats .stat-val { color: #00a3ff; font-weight: bold; }
-        .canvas-stats .hit { color: #00C851; }
-        .canvas-stats .miss { color: #ff4444; }
-        
         .legend-container { display: flex; justify-content: center; gap: 10px; font-size: 11px; color: #7f8fa4; margin-bottom: 15px; flex-wrap: wrap; }
         .legend-item { display: flex; align-items: center; gap: 5px; }
         
@@ -273,7 +253,7 @@ ReloadLeft	2.3
 ReloadThrs	0.76
 RoF	770
 SDmg	24.5
-TimeToLive	1.5 </textarea>
+TimeToLive	1.5</textarea>
         
         <div style="display: flex; gap: 5px;">
             <button onclick="parseData()" style="flex: 2;">Load & Apply Data</button>
@@ -374,37 +354,15 @@ TimeToLive	1.5 </textarea>
                 <div class="legend-container" style="margin-top: 10px; margin-bottom: 0;">
                     <div class="legend-item"><span style="color:#ff3333; font-size:14px;">●</span> Shot 1</div>
                     <div class="legend-item"><span style="color:#00C851; font-size:14px;">●</span> Hit</div>
-                    <div class="legend-item"><span style="color:rgba(255,255,255,0.4); font-size:14px;">●</span> Miss</div>
+                    <div class="legend-item"><span style="colorrgba(255,255,255,0.4); font-size:14px;">●</span> Miss</div>
                 </div>
             </div>
-            <div class="canvas-stats">
-                <div class="stat-line">
-                    <span class="stat-label">Total Shots:</span>
-                    <span class="stat-val" id="statsShots">-</span>
-                </div>
-                <div class="stat-line">
-                    <span class="stat-label">Hits:</span>
-                    <span class="stat-val hit" id="statsHits">-</span>
-                </div>
-                <div class="stat-line">
-                    <span class="stat-label">Misses:</span>
-                    <span class="stat-val miss" id="statsMisses">-</span>
-                </div>
-                <div class="stat-line">
-                    <span class="stat-label">Accuracy:</span>
-                    <span class="stat-val" id="statsAccuracy">-</span>
-                </div>
-                <div class="stat-line" style="border-top: 1px solid #1e2635; padding-top: 6px; margin-top: 6px;">
-                    <span class="stat-label">Distance:</span>
-                    <span class="stat-val" id="statsDist">-</span>
-                </div>
-                <div class="stat-line">
-                    <span class="stat-label">Spread:</span>
-                    <span class="stat-val" id="statsSpread">-</span>
-                </div>
-                <div class="stat-line">
-                    <span class="stat-label">V.Recoil:</span>
-                    <span class="stat-val" id="statsVRecoil">-</span>
+            
+            <div style="flex: 1; min-width: 220px; display: flex; flex-direction: column; align-items: center; border-left: 1px solid #1e2635; padding-left: 15px;">
+                <canvas id="ballisticsCanvas"></canvas>
+                <div class="legend-container" style="margin-top: 10px; margin-bottom: 0;">
+                    <div class="legend-item"><span style="color:#ffaa00; font-size:14px;">●</span> Bullet Drop</div>
+                    <div class="legend-item"><span style="color:#00a3ff; font-size:14px;">→</span> Lead (Sprint)</div>
                 </div>
             </div>
         </div>
@@ -493,7 +451,7 @@ TimeToLive	1.5 </textarea>
                 <option value="none">None</option>
                 <option value="fh">Flash Hider (SDEC -13% / Hide Flash)</option>
                 <option value="mb">Muzzle Brake (V.Recoil -10%, SIPS +12.5%)</option>
-                <option value="sup">Suppressor (InitialSpeed -43%, Hide Muzzle Flash)</option>
+                <option value="sup">Suppressor (InitialSpeed -45%, Hide Muzzle Flash)</option>
             `;
             
             gripSelect.innerHTML = `
@@ -548,7 +506,9 @@ TimeToLive	1.5 </textarea>
     }
 
     function parseData() {
-        const text = $('rawInput').value;
+        let text = $('rawInput').value;
+        text = text.replace(/^[^\s]+(?=ADS)/, '');
+
         const regex = /([a-zA-Z0-9_]+)\s+([0-9.\-]+|N\/A)/g;
         let match, parsedCount = 0;
         WEP = {};
@@ -664,14 +624,13 @@ TimeToLive	1.5 </textarea>
         function tick() {
             if (idx < currentShotsArray.length) {
                 updateFireBtn(true, `💥 Firing Shot ${idx + 1}/${currentShotsArray.length}...`);
-                drawCanvas(lastCalcParams.dist, lastCalcParams.radiusM, lastCalcParams.vRecoil, lastCalcParams.hRecoilLeft, lastCalcParams.hRecoilRight, lastCalcParams.burst, lastCalcParams.stk, currentShotsArray, true, idx);
+                drawCanvas(lastCalcParams.dist, lastCalcParams.radiusM, lastCalcParams.vRecoil, lastCalcParams.lastXLeft || 0, lastCalcParams.lastXRight || 0, lastCalcParams.burst, lastCalcParams.stk, currentShotsArray, true, idx);
                 idx++;
                 animationTimeout = setTimeout(tick, delay);
             } else {
                 updateFireBtn(false, "🔥 Animate Firing (Real-Time RoF)");
                 animationTimeout = null;
-                drawCanvas(lastCalcParams.dist, lastCalcParams.radiusM, lastCalcParams.vRecoil, lastCalcParams.hRecoilLeft, lastCalcParams.hRecoilRight, lastCalcParams.burst, lastCalcParams.stk, currentShotsArray, false, 0);
-                updateCanvasStats(currentShotsArray);
+                drawCanvas(lastCalcParams.dist, lastCalcParams.radiusM, lastCalcParams.vRecoil, lastCalcParams.lastXLeft || 0, lastCalcParams.lastXRight || 0, lastCalcParams.burst, lastCalcParams.stk, currentShotsArray, false, 0);
             }
         }
         tick();
@@ -680,8 +639,6 @@ TimeToLive	1.5 </textarea>
     function calculateOptimalSweetspot() {
         const DOStart = WEP.DOStart || 12.5;
         const DOEnd = WEP.DOEnd || 60;
-        const SDmg = WEP.SDmg || 24.5;
-        const EDmg = WEP.EDmg || 18;
         
         const stance = $('stance').value;
         const isMoving = $('isMoving').checked;
@@ -726,7 +683,10 @@ TimeToLive	1.5 </textarea>
             allowedTargetRadius = 0.10; 
         }
 
-        let accuracyMaxRange = allowedTargetRadius / Math.tan(finalSpread * DEG2RAD);
+        let accuracyMaxRange = Infinity;
+        if (finalSpread > 0) {
+            accuracyMaxRange = allowedTargetRadius / Math.tan(finalSpread * DEG2RAD);
+        }
 
         let damageMaxRange = DOEnd;
         
@@ -738,8 +698,15 @@ TimeToLive	1.5 </textarea>
             damageMaxRange = DOEnd; 
         } else if (currentWeaponClass === 6) { 
             damageMaxRange = DOEnd; 
-        } else if (currentWeaponClass === 4) { 
-            damageMaxRange = WEP.MaxDistance || 150; 
+        } else if (currentWeaponClass === 4) {
+            const isSup = barrel === 'sup';
+            const speed = isSup ? (WEP.InitialSpeed_Silencer || 340) : (WEP.InitialSpeed || 600);
+            const dropAcc = WEP.BDrop || 9.81;
+            
+            let ballisticMax = speed * Math.sqrt(2 / dropAcc);
+            let flightTimeMax = speed * 0.55; 
+            
+            damageMaxRange = Math.min(ballisticMax, flightTimeMax);
         }
 
         let finalSweetspot = Math.min(accuracyMaxRange, damageMaxRange);
@@ -750,45 +717,6 @@ TimeToLive	1.5 </textarea>
         if (finalSweetspot > maxAllowedRange) finalSweetspot = maxAllowedRange;
 
         return { optimalMin: 0, optimalMax: Math.round(finalSweetspot) };
-    }
-
-    function updateCanvasStats(shots) {
-        let hits = 0, misses = 0;
-        const polyPoints = [];
-        
-        const dist = lastCalcParams.dist;
-        const radiusM = lastCalcParams.radiusM;
-        const vRecoil = lastCalcParams.vRecoil;
-        const hRecLeft = lastCalcParams.hRecoilLeft;
-        const hRecRight = lastCalcParams.hRecoilRight;
-        
-        const rY = dist * Math.tan(vRecoil * DEG2RAD);
-        const rXLeft = dist * Math.tan(hRecLeft * DEG2RAD);
-        const rXRight = dist * Math.tan(hRecRight * DEG2RAD);
-        
-        const maxM = Math.max(0.45, rY + radiusM, rXLeft + radiusM, rXRight + radiusM) + 1.35;
-        const ppm = Math.min(Math.max(15, 3000 / dist), (150 - 20) / maxM);
-        const cx = 100, topY = ((150 - (maxM * ppm)) / 2) + ((Math.max(0.45, rY + radiusM) * ppm) - (0.45 * ppm));
-        const baseY = topY + 0.45 * ppm;
-        
-        SILHOUETTE_PTS.forEach(p => polyPoints.push([cx + p[0] * ppm, topY + p[1] * ppm]));
-        SILHOUETTE_PTS_REV.forEach(p => polyPoints.push([cx - p[0] * ppm, topY + p[1] * ppm]));
-        
-        shots.forEach(s => {
-            const isHit = pointInPolygon([cx + (s.bulletX * ppm), baseY - (s.bulletY * ppm)], polyPoints);
-            if (isHit) hits++;
-            else misses++;
-        });
-        
-        const accuracy = shots.length > 0 ? ((hits / shots.length) * 100).toFixed(1) : 0;
-        
-        $('statsShots').innerText = shots.length;
-        $('statsHits').innerText = hits;
-        $('statsMisses').innerText = misses;
-        $('statsAccuracy').innerText = `${accuracy}%`;
-        $('statsDist').innerText = `${dist}m`;
-        $('statsSpread').innerText = `${radiusM.toFixed(4)}m`;
-        $('statsVRecoil').innerText = `${vRecoil.toFixed(2)}°`;
     }
 
     function calculate() {
@@ -838,7 +766,11 @@ TimeToLive	1.5 </textarea>
         else if (dist >= WEP.DOEnd) dmg = WEP.EDmg;
         
         const shotsToKill = Math.ceil(100 / dmg);
-        const flightTime = dist / (WEP.InitialSpeed || 600);
+        
+        const isSup = barrel === 'sup';
+        const activeSpeed = isSup ? (WEP.InitialSpeed_Silencer || 340) : (WEP.InitialSpeed || 600);
+        
+        const flightTime = dist / activeSpeed;
         const totalTTKMs = (((shotsToKill - 1) * (60 / activeRoF)) + flightTime) * 1000;
 
         let staticMin = WEP[`ADS${stance}BaseMin`] ?? WEP.ADSStandBaseMin ?? 0.2;
@@ -862,9 +794,9 @@ TimeToLive	1.5 </textarea>
         else if (grip === 'bipod') { staticMin *= 0.05; movingMin *= 0.05; sips *= 0.1; maxSpread *= 0.165; recoilUp *= 0.1; recLeft *= 0.25; recRight *= 0.25; fsrm *= 0.15; }
 
         if (currentWeaponClass === 4 && (grip === 'stubby' || grip === 'angled' || grip === 'ergo')) {
-            sips = origSips;
-            maxSpread = WEP[`ADS${stance}${isMoving ? 'Move' : 'Base'}Max`] ?? WEP[`ADSStand${isMoving ? 'Move' : 'Base'}Max`] ?? 1.7;
-            sdec = WEP[`ADS${stance}BaseSpreadDec`] ?? WEP.ADSStandBaseSpreadDec ?? 15;
+            sips = origSip;
+            maxSpread = WEP[`ADS${stance}${isMoving ? 'Move' : 'Base'}Max`] ?? 1.7;
+            sdec = WEP[`ADS${stance}BaseSpreadDec`] ?? 15;
             fsrm = WEP.FirstShotRecoilMul ?? 2.0;
         }
         if (currentWeaponClass === 4 && barrel === 'hb') {
@@ -882,12 +814,11 @@ TimeToLive	1.5 </textarea>
         const currentSpread = Math.min(simSpread, maxSpread);
         const radiusM = dist * Math.tan(currentSpread * DEG2RAD);
 
-        let recoilAtLastShotY = 0, totalHorizontalWindow = 0;
+        let recoilAtLastShotY = 0;
         let totalRecLeft = 0, totalRecRight = 0; 
         
         if (burst > 1) {
             recoilAtLastShotY = (recoilUp * fsrm) + (recoilUp * Math.max(0, burst - 2));
-            totalHorizontalWindow = (recLeft + recRight) * (burst - 1);
             totalRecLeft = recLeft * (burst - 1);   
             totalRecRight = recRight * (burst - 1); 
         }
@@ -947,7 +878,6 @@ TimeToLive	1.5 </textarea>
             $('sweetspotVal').innerHTML = `<span class="stat-value" style="color:#ff4444">0-${maxRange} m</span><br><span style="font-size:12px; color:#7f8fa4;">Too Far</span>`;
         }
 
-        // --- MATHEMATICAL LOADOUT OPTIMIZATION LOOP ---
         let bestBarrelId = "none", bestGripId = "none";
         let bestScore = -Infinity;
         let bestMetrics = {};
@@ -1072,7 +1002,6 @@ TimeToLive	1.5 </textarea>
         const horizWindow = (totalRecLeft + totalRecRight).toFixed(2);
         $('recoilVal').innerHTML = `Vert: +${(showRecoil ? recoilAtLastShotY : 0).toFixed(2)}°<br>Horiz Window: ${horizWindow}°<br><span style="color:#7f8fa4; font-size:11px;">(L ${(showRecoil ? totalRecLeft : 0).toFixed(2)}° / R ${(showRecoil ? totalRecRight : 0).toFixed(2)}°)</span>`;
         
-        // --- DYNAMIC TRAFFIC LIGHT SYSTEM (BULLET DROP & LEAD DISTANCE) ---
         const rawDropCm = 0.5 * (WEP.BDrop || 15) * (flightTime * flightTime) * 100;
         const dropMeters = rawDropCm / 100;
         const leadMeters = 6.5 * flightTime;
@@ -1082,13 +1011,13 @@ TimeToLive	1.5 </textarea>
         let leadClass = "good";
         let leadRating = "Easy";
 
-        if (currentWeaponClass === 4) { // Sniper Thresholds
+        if (currentWeaponClass === 4) { 
             if (dropMeters > 4.0) { dropClass = "alert"; dropRating = "Extreme Holdover"; }
             else if (dropMeters > 1.0) { dropClass = "info"; dropRating = "Moderate Mildot Adj."; }
             
             if (leadMeters > 4.0) { leadClass = "alert"; leadRating = "Excessive Lead"; }
             else if (leadMeters > 1.5) { leadClass = "info"; leadRating = "Significant Lead"; }
-        } else { // Regular Weapon Thresholds
+        } else { 
             if (dropMeters > 1.0) { dropClass = "alert"; dropRating = "Unusable Range"; }
             else if (dropMeters > 0.3) { dropClass = "info"; dropRating = "High Drop"; }
             
@@ -1103,7 +1032,8 @@ TimeToLive	1.5 </textarea>
         $('leadBox').className = `stat-box ${leadClass}`;
 
         drawCanvas(lastCalcParams.dist, lastCalcParams.radiusM, lastCalcParams.vRecoil, lastCalcParams.hRecoilLeft, lastCalcParams.hRecoilRight, lastCalcParams.burst, lastCalcParams.stk, shots, false, 0);
-        updateCanvasStats(shots);
+        
+        drawBallistics(dist, dropMeters, leadMeters);
     }
 
     function drawCanvas(dist, radiusM, vRecoil, hRecLeft, hRecRight, burst, stk, shots, isAnimating = false, animationIndex = 0) {
@@ -1185,6 +1115,63 @@ TimeToLive	1.5 </textarea>
             
             ctx.fill(); ctx.lineWidth = 0.8; ctx.stroke();
         });
+    }
+
+    function drawBallistics(dist, dropMeters, leadMeters) {
+        const cvs = $('ballisticsCanvas');
+        if (!cvs) return; 
+        
+        const ctx = cvs.getContext('2d');
+        const dpr = window.devicePixelRatio || 1;
+        
+        if (cvs.width !== 200 * dpr || cvs.height !== 200 * dpr) {
+            cvs.width = 200 * dpr; 
+            cvs.height = 200 * dpr;
+            ctx.scale(dpr, dpr);
+        }
+        
+        ctx.clearRect(0, 0, 200, 200);
+
+        const cx = 100, cy = 60; 
+
+        const maxOffset = Math.max(leadMeters, dropMeters, 1);
+        const scale = Math.min(80 / maxOffset, 30); 
+
+        ctx.strokeStyle = '#2a374e'; 
+        ctx.lineWidth = 1;
+        ctx.beginPath(); ctx.moveTo(10, cy); ctx.lineTo(190, cy); ctx.stroke(); 
+        ctx.beginPath(); ctx.moveTo(cx, 10); ctx.lineTo(cx, 190); ctx.stroke(); 
+
+        ctx.fillStyle = '#2a374e';
+        for(let i = -3; i <= 3; i++) {
+            if (i !== 0) {
+                ctx.fillRect(cx + (i * scale) - 1, cy - 3, 2, 6); 
+                ctx.fillRect(cx - 3, cy + (i * scale) - 1, 6, 2); 
+            }
+        }
+
+        const leadPx = leadMeters * scale;
+        
+        ctx.fillStyle = 'rgba(0, 163, 255, 0.15)';
+        ctx.fillRect(cx, cy - 8, leadPx, 16); 
+        
+        ctx.fillStyle = '#00a3ff';
+        ctx.beginPath(); ctx.arc(cx + leadPx, cy, 3.5, 0, Math.PI * 2); ctx.fill(); 
+        
+        ctx.beginPath(); ctx.moveTo(cx + 5, cy); ctx.lineTo(cx + Math.max(5, leadPx - 5), cy);
+        ctx.strokeStyle = '#00a3ff'; ctx.setLineDash([2, 2]); ctx.lineWidth = 1.5; ctx.stroke(); ctx.setLineDash([]);
+
+        const dropPx = dropMeters * scale;
+        
+        ctx.fillStyle = '#ffaa00';
+        ctx.beginPath(); ctx.arc(cx, cy + dropPx, 4, 0, Math.PI * 2); ctx.fill();
+        
+        ctx.beginPath(); ctx.moveTo(cx, cy);
+        ctx.quadraticCurveTo(cx, cy + (dropPx * 0.7), cx, cy + dropPx);
+        ctx.strokeStyle = '#ffaa00'; ctx.lineWidth = 2; ctx.stroke();
+        
+        ctx.fillStyle = '#ffffff';
+        ctx.beginPath(); ctx.arc(cx, cy, 2, 0, Math.PI * 2); ctx.fill();
     }
 
     window.onload = parseData;
